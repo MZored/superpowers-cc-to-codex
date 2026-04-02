@@ -2,6 +2,11 @@
 .serena/
 .DS_Store
 
+# internal working artifacts
+docs/superpowers/plans/
+docs/superpowers/specs/
+/20??-??-??-*-design*.md
+
 # dependencies
 node_modules/
 

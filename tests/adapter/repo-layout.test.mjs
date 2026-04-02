@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
+import path from 'node:path/posix';
 
 async function readJson(relativePath) {
   const url = new URL(`../../${relativePath}`, import.meta.url);
@@ -28,4 +29,32 @@ test('package.json wires the maintainer scripts', async () => {
   assert.ok(pkg.scripts.test);
   assert.ok(pkg.scripts['validate:plugin']);
   assert.ok(pkg.scripts.doctor);
+});
+
+test('public repo does not track internal planning artifacts', async () => {
+  const gitignore = await readFile(new URL('../../.gitignore', import.meta.url), 'utf8');
+  const repoEntries = await readdir(new URL('../../', import.meta.url), {
+    recursive: true,
+    withFileTypes: true,
+  });
+  const repoFiles = repoEntries
+    .filter((entry) => entry.isFile())
+    .map((entry) => path.join(entry.parentPath === '.' ? '' : entry.parentPath, entry.name));
+
+  assert.match(gitignore, /^docs\/superpowers\/plans\/$/m);
+  assert.match(gitignore, /^docs\/superpowers\/specs\/$/m);
+  assert.match(gitignore, /^\/20\?\?-\?\?-\?\?-\*-design\*\.md$/m);
+
+  assert.ok(
+    repoFiles.every((file) => !file.startsWith('docs/superpowers/plans/')),
+    'expected docs/superpowers/plans/ to stay out of the public repository tree',
+  );
+  assert.ok(
+    repoFiles.every((file) => !file.startsWith('docs/superpowers/specs/')),
+    'expected docs/superpowers/specs/ to stay out of the public repository tree',
+  );
+  assert.ok(
+    repoFiles.every((file) => !/^20\d{2}-\d{2}-\d{2}-.*-design.*\.md$/.test(file)),
+    'expected ad-hoc dated design notes to stay out of the public repository tree',
+  );
 });
