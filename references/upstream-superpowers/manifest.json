@@ -1,0 +1,16 @@
+{
+  "repo": "obra/superpowers",
+  "ref": "main",
+  "skills": [
+    { "forkPath": "skills/brainstorming/SKILL.md", "upstreamPath": "skills/brainstorming/SKILL.md" },
+    { "forkPath": "skills/writing-plans/SKILL.md", "upstreamPath": "skills/writing-plans/SKILL.md" },
+    {
+      "forkPath": "skills/subagent-driven-development/SKILL.md",
+      "upstreamPath": "skills/subagent-driven-development/SKILL.md"
+    },
+    {
+      "forkPath": "skills/requesting-code-review/SKILL.md",
+      "upstreamPath": "skills/requesting-code-review/SKILL.md"
+    }
+  ]
+}
