@@ -1,3 +1,13 @@
 .worktrees/
 .serena/
 .DS_Store
+
+# dependencies
+node_modules/
+
+# runtime state
+.claude/state/
+
+# test output
+coverage/
+.tmp/
