@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "issues"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["APPROVED", "ISSUES_FOUND"]
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "line", "issue", "severity"],
+        "properties": {
+          "file": { "type": "string" },
+          "line": { "type": "integer" },
+          "issue": { "type": "string" },
+          "severity": { "type": "string", "enum": ["important", "critical"] }
+        }
+      }
+    }
+  }
+}
