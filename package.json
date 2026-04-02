@@ -10,7 +10,7 @@
   "scripts": {
     "test": "node --test",
     "validate:plugin": "claude plugin validate .",
-    "doctor": "node scripts/detect-codex.mjs && node scripts/check-codex-cli.mjs && npm run validate:plugin",
+    "doctor": "node scripts/doctor.mjs",
     "check:upstream": "node scripts/check-upstream-superpowers.mjs"
   }
 }
