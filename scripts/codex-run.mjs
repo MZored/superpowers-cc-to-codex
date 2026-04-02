@@ -1,11 +1,8 @@
-import { execFile } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
-import { promisify } from 'node:util';
 import { detectCodexRuntime } from './detect-codex.mjs';
 import { loadRequiredTaskState, saveTaskState } from './lib/codex-state.mjs';
-
-const execFileAsync = promisify(execFile);
+import { runCommand } from './lib/run-command.mjs';
 
 const SUPPORTED_MODES = new Set(['research', 'plan', 'implement', 'review', 'resume']);
 
@@ -179,8 +176,8 @@ async function buildPrompt(invocation) {
 
   if (invocation.base) {
     const [stat, diff] = await Promise.all([
-      execFileAsync('git', ['diff', '--stat', `${invocation.base}..HEAD`], { cwd: invocation.cwd }),
-      execFileAsync('git', ['diff', `${invocation.base}..HEAD`], { cwd: invocation.cwd })
+      runCommand('git', ['diff', '--stat', `${invocation.base}..HEAD`], { cwd: invocation.cwd }),
+      runCommand('git', ['diff', `${invocation.base}..HEAD`], { cwd: invocation.cwd })
     ]);
 
     return [
@@ -197,7 +194,7 @@ async function buildPrompt(invocation) {
     ].join('\n');
   }
 
-  const commitView = await execFileAsync(
+  const commitView = await runCommand(
     'git',
     ['show', '--stat', '--format=medium', invocation.commit],
     { cwd: invocation.cwd }
@@ -216,7 +213,7 @@ async function buildPrompt(invocation) {
 
 async function executeCommand(command, cwd, prompt) {
   const args = prompt ? [...command.slice(1), prompt] : command.slice(1);
-  return execFileAsync(command[0], args, { cwd });
+  return runCommand(command[0], args, { cwd });
 }
 
 async function runInvocation(invocation) {
