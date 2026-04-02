@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["current_patterns", "approaches", "risks"],
+  "properties": {
+    "current_patterns": { "type": "array", "items": { "type": "string" } },
+    "approaches": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } }
+  }
+}

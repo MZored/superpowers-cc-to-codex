@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["files", "tasks", "test_commands", "commit_boundaries"],
+  "properties": {
+    "files": { "type": "array", "items": { "type": "string" } },
+    "tasks": { "type": "array", "items": { "type": "string" } },
+    "test_commands": { "type": "array", "items": { "type": "string" } },
+    "commit_boundaries": { "type": "array", "items": { "type": "string" } }
+  }
+}
