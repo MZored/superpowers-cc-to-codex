@@ -3,9 +3,11 @@ import { readFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { promisify } from 'node:util';
 import { detectCodexRuntime } from './detect-codex.mjs';
-import { loadTaskState, saveTaskState } from './lib/codex-state.mjs';
+import { loadRequiredTaskState, saveTaskState } from './lib/codex-state.mjs';
 
 const execFileAsync = promisify(execFile);
+
+const SUPPORTED_MODES = new Set(['research', 'plan', 'implement', 'review', 'resume']);
 
 const SANDBOX_BY_MODE = {
   research: 'read-only',
@@ -14,6 +16,12 @@ const SANDBOX_BY_MODE = {
   review: 'read-only',
   resume: 'workspace-write'
 };
+
+function assertSupportedMode(mode) {
+  if (!SUPPORTED_MODES.has(mode)) {
+    throw new Error(`Unsupported mode: ${mode}`);
+  }
+}
 
 function normalizeServiceTier(requestedServiceTier, authProvider) {
   if (requestedServiceTier !== 'fast') {
@@ -60,6 +68,8 @@ export function buildInvocation({
   sessionId,
   dryRun = false
 }) {
+  assertSupportedMode(mode);
+
   const { options: commonOptions, effectiveServiceTier } = buildCommonOptions({
     model,
     effort,
@@ -247,11 +257,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   });
 
   const mode = positionals[0];
+  // Validate early to fail before any async I/O (buildInvocation also validates).
+  assertSupportedMode(mode);
   const cwd = values.cwd ?? process.cwd();
   const runtime = await detectCodexRuntime();
   const savedState =
     mode === 'resume' && values.taskId && !values.sessionId
-      ? await loadTaskState(cwd, values.taskId)
+      ? await loadRequiredTaskState(cwd, values.taskId)
       : null;
   const invocation = buildInvocation({
     mode,
