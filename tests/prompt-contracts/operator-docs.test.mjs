@@ -13,10 +13,14 @@ test('doctor command points to the maintained preflight checks', async () => {
   assert.match(doctor, /claude plugin validate/);
 });
 
-test('README documents direct GitHub installation and the four forked skills', async () => {
+test('README documents marketplace install, upstream superpowers reference, license, and the four forked skills', async () => {
   const readme = await read('README.md');
-  assert.match(readme, /claude plugin marketplace add mzored\/superpowers-cc-to-codex/);
-  assert.match(readme, /claude plugin install superpowers-cc-to-codex@superpowers-cc-to-codex/);
+  assert.match(readme, /\/plugin marketplace add mzored\/superpowers-cc-to-codex/);
+  assert.match(readme, /\/plugin install superpowers-cc-to-codex@superpowers-cc-to-codex/);
+  assert.match(readme, /https:\/\/github\.com\/obra\/superpowers/);
+  assert.match(readme, /\/plugin marketplace add obra\/superpowers-marketplace/);
+  assert.match(readme, /\/plugin install superpowers@superpowers-marketplace/);
+  assert.match(readme, /MIT License/);
   assert.match(readme, /superpowers-cc-to-codex:brainstorming/);
   assert.match(readme, /superpowers-cc-to-codex:writing-plans/);
   assert.match(readme, /superpowers-cc-to-codex:subagent-driven-development/);
