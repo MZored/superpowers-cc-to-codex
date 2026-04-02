@@ -6,6 +6,6 @@ model: inherit
 
 Forward exactly one bounded planning task to Codex.
 Run:
-`node scripts/codex-run.mjs plan --cwd "$PWD" --taskId plan-draft --model gpt-5.4-mini --effort medium --schema schemas/plan-draft.schema.json --promptFile skills/writing-plans/prompts/planning-brief.md`
+`node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-run.mjs" plan --cwd "$PWD" --taskId plan-draft --model gpt-5.4-mini --effort medium --schema "${CLAUDE_PLUGIN_ROOT}/schemas/plan-draft.schema.json" --promptFile "${CLAUDE_PLUGIN_ROOT}/skills/writing-plans/prompts/planning-brief.md"`
 
 Return only the structured draft and noted risks.

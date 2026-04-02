@@ -7,7 +7,7 @@ model: inherit
 The controller must substitute a concrete value for `<TASK_ID>` before running these commands.
 
 Initial task run:
-`node scripts/codex-run.mjs implement --cwd "$PWD" --taskId <TASK_ID> --model gpt-5.4 --effort medium --schema schemas/implementer-result.schema.json --promptFile skills/subagent-driven-development/prompts/implement-task.md`
+`node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-run.mjs" implement --cwd "$PWD" --taskId <TASK_ID> --model gpt-5.4 --effort medium --schema "${CLAUDE_PLUGIN_ROOT}/schemas/implementer-result.schema.json" --promptFile "${CLAUDE_PLUGIN_ROOT}/skills/subagent-driven-development/prompts/implement-task.md"`
 
 Fix loop:
-`node scripts/codex-run.mjs resume --cwd "$PWD" --taskId <TASK_ID> --model gpt-5.4 --effort medium --promptFile skills/subagent-driven-development/prompts/fix-task.md`
+`node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-run.mjs" resume --cwd "$PWD" --taskId <TASK_ID> --model gpt-5.4 --effort medium --promptFile "${CLAUDE_PLUGIN_ROOT}/skills/subagent-driven-development/prompts/fix-task.md"`

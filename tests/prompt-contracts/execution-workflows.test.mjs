@@ -17,8 +17,8 @@ test('execution workflow preserves review order and explicit status handling', a
 test('implementer and reviewer agents forward to the adapter without doing git work themselves', async () => {
   const implementer = await read('agents/codex-implementer.md');
   const reviewer = await read('agents/codex-reviewer.md');
-  assert.match(implementer, /node scripts\/codex-run\.mjs implement/);
-  assert.match(reviewer, /node scripts\/codex-run\.mjs review/);
+  assert.match(implementer, /\$\{CLAUDE_PLUGIN_ROOT\}\/scripts\/codex-run\.mjs.*implement/);
+  assert.match(reviewer, /\$\{CLAUDE_PLUGIN_ROOT\}\/scripts\/codex-run\.mjs.*review/);
   assert.doesNotMatch(implementer, /git commit/);
   assert.doesNotMatch(reviewer, /git commit/);
 });

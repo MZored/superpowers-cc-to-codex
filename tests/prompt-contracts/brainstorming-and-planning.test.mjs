@@ -17,8 +17,8 @@ test('forked workflow entrypoints require explicit invocation', async () => {
 test('brainstorm and plan agents are thin codex forwarders', async () => {
   const researchAgent = await read('agents/codex-brainstorm-researcher.md');
   const planAgent = await read('agents/codex-plan-drafter.md');
-  assert.match(researchAgent, /node scripts\/codex-run\.mjs research/);
-  assert.match(planAgent, /node scripts\/codex-run\.mjs plan/);
+  assert.match(researchAgent, /\$\{CLAUDE_PLUGIN_ROOT\}\/scripts\/codex-run\.mjs.*research/);
+  assert.match(planAgent, /\$\{CLAUDE_PLUGIN_ROOT\}\/scripts\/codex-run\.mjs.*plan/);
   assert.doesNotMatch(researchAgent, /git commit/);
   assert.doesNotMatch(planAgent, /git commit/);
 });
