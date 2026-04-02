@@ -3,6 +3,7 @@ import { parseArgs } from 'node:util';
 import { detectCodexRuntime } from './detect-codex.mjs';
 import { loadRequiredTaskState, saveTaskState } from './lib/codex-state.mjs';
 import { runCommand } from './lib/run-command.mjs';
+import { buildStructuredReviewPrompt } from './lib/review-scope.mjs';
 
 const SUPPORTED_MODES = new Set(['research', 'plan', 'implement', 'review', 'resume']);
 
@@ -17,6 +18,17 @@ const SANDBOX_BY_MODE = {
 function assertSupportedMode(mode) {
   if (!SUPPORTED_MODES.has(mode)) {
     throw new Error(`Unsupported mode: ${mode}`);
+  }
+}
+
+function assertValidReviewSelector({ mode, base, commit, uncommitted, schemaPath }) {
+  if (mode !== 'review') return;
+  const selectorCount = [Boolean(base), Boolean(commit), Boolean(uncommitted)].filter(Boolean).length;
+  if (selectorCount > 1) {
+    throw new Error('Choose exactly one review selector: --base, --commit, or --uncommitted.');
+  }
+  if (schemaPath && uncommitted) {
+    throw new Error('Structured review does not support --uncommitted. Use advisory review without --schema.');
   }
 }
 
@@ -62,10 +74,12 @@ export function buildInvocation({
   promptFile,
   base,
   commit,
+  uncommitted = false,
   sessionId,
   dryRun = false
 }) {
   assertSupportedMode(mode);
+  assertValidReviewSelector({ mode, base, commit, uncommitted, schemaPath });
 
   const { options: commonOptions, effectiveServiceTier } = buildCommonOptions({
     model,
@@ -74,18 +88,30 @@ export function buildInvocation({
     authProvider
   });
 
-  if (mode === 'review' && !schemaPath && (base || commit)) {
-    return {
-      command: commit ? ['codex', 'review', '--commit', commit] : ['codex', 'review', '--base', base],
-      cwd,
-      dryRun,
-      mode,
-      promptFile,
-      base,
-      commit,
-      taskId,
-      serviceTier: effectiveServiceTier
-    };
+  if (mode === 'review' && !schemaPath) {
+    let command;
+    if (uncommitted) {
+      command = ['codex', 'review', '--uncommitted'];
+    } else if (commit) {
+      command = ['codex', 'review', '--commit', commit];
+    } else if (base) {
+      command = ['codex', 'review', '--base', base];
+    }
+
+    if (command) {
+      return {
+        command,
+        cwd,
+        dryRun,
+        mode,
+        promptFile,
+        base,
+        commit,
+        uncommitted,
+        taskId,
+        serviceTier: effectiveServiceTier
+      };
+    }
   }
 
   if (mode === 'resume') {
@@ -170,45 +196,25 @@ function stripFastServiceTier(command) {
 async function buildPrompt(invocation) {
   const promptBody = invocation.promptFile ? await readFile(invocation.promptFile, 'utf8') : undefined;
 
-  if (invocation.mode !== 'review' || (!invocation.base && !invocation.commit)) {
+  if (invocation.mode !== 'review') {
     return promptBody;
   }
 
-  if (invocation.base) {
-    const [stat, diff] = await Promise.all([
-      runCommand('git', ['diff', '--stat', `${invocation.base}..HEAD`], { cwd: invocation.cwd }),
-      runCommand('git', ['diff', `${invocation.base}..HEAD`], { cwd: invocation.cwd })
-    ]);
-
-    return [
-      promptBody ?? '',
-      '',
-      '## Diff Scope',
-      `Base: ${invocation.base}`,
-      '',
-      '### git diff --stat',
-      stat.stdout.trim(),
-      '',
-      '### git diff',
-      diff.stdout.trim()
-    ].join('\n');
+  if (invocation.uncommitted) {
+    // Advisory uncommitted review: prompt is passed separately to codex review --uncommitted
+    return promptBody;
   }
 
-  const commitView = await runCommand(
-    'git',
-    ['show', '--stat', '--format=medium', invocation.commit],
-    { cwd: invocation.cwd }
-  );
+  if (!invocation.base && !invocation.commit) {
+    return promptBody;
+  }
 
-  return [
-    promptBody ?? '',
-    '',
-    '## Diff Scope',
-    `Commit: ${invocation.commit}`,
-    '',
-    '### git show --stat --format=medium',
-    commitView.stdout.trim()
-  ].join('\n');
+  return buildStructuredReviewPrompt({
+    cwd: invocation.cwd,
+    promptBody: promptBody ?? '',
+    base: invocation.base,
+    commit: invocation.commit
+  });
 }
 
 async function executeCommand(command, cwd, prompt) {
@@ -248,6 +254,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       promptFile: { type: 'string' },
       base: { type: 'string' },
       commit: { type: 'string' },
+      uncommitted: { type: 'boolean' },
       sessionId: { type: 'string' },
       dryRun: { type: 'boolean' }
     }
@@ -274,6 +281,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     promptFile: values.promptFile,
     base: values.base,
     commit: values.commit,
+    uncommitted: values.uncommitted ?? false,
     sessionId: values.sessionId ?? savedState?.sessionId,
     dryRun: values.dryRun ?? false
   });

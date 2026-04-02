@@ -12,5 +12,5 @@ disable-model-invocation: true
 # Requesting Code Review
 
 Use `codex-reviewer` for diff review.
-Use structured `codex exec` review when the controller needs machine-parseable output.
-Use natural-language `codex review` only for advisory, ad-hoc review flows.
+Use structured `codex exec` review when the controller needs machine-parseable output for a base or commit selector.
+Use natural-language `codex review` for advisory base, commit, or uncommitted review flows.
