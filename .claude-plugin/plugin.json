@@ -1,13 +1,13 @@
 {
-  "name": "superpowers-codex-fork",
+  "name": "superpowers-cc-to-codex",
   "version": "0.1.0",
   "description": "Codex-backed workflow fork of four superpowers workflows for research, planning, implementation, and review.",
   "author": {
     "name": "mzored"
   },
   "license": "MIT",
-  "homepage": "https://github.com/mzored/superpowers-codex-fork",
-  "repository": "https://github.com/mzored/superpowers-codex-fork",
+  "homepage": "https://github.com/mzored/superpowers-cc-to-codex",
+  "repository": "https://github.com/mzored/superpowers-cc-to-codex",
   "keywords": [
     "claude-code",
     "codex",

@@ -1,11 +1,11 @@
 {
-  "name": "superpowers-codex-fork",
+  "name": "superpowers-cc-to-codex",
   "owner": {
     "name": "mzored"
   },
   "plugins": [
     {
-      "name": "superpowers-codex-fork",
+      "name": "superpowers-cc-to-codex",
       "description": "Codex-backed fork of four superpowers workflows for Claude Code.",
       "version": "0.1.0",
       "source": "./",
