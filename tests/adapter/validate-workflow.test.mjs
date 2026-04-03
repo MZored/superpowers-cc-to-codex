@@ -19,9 +19,9 @@ test('compareForkToUpstream reports when a result matches the expected sync stat
   assert.equal(report.matchesExpectation, true);
 });
 
-test('marketplace manifest includes a top-level description', async () => {
+test('marketplace manifest includes a plugin-level description', async () => {
   const marketplace = JSON.parse(await read('.claude-plugin/marketplace.json'));
-  assert.match(marketplace.description, /Marketplace for the Codex-backed fork/);
+  assert.match(marketplace.plugins[0].description, /Codex-backed fork/);
 });
 
 test('validation workflow pins Claude Code to the locally verified version', async () => {
