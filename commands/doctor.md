@@ -14,3 +14,5 @@ The command must verify:
 - `git` and `node` are available
 - Plugin manifests validate cleanly via `claude plugin validate .`
 - The current workspace is suitable for adapter-managed state under `.claude/state/codex/`
+
+If validation passes but a resume command still fails, inspect saved sessions with `commands/codex-state.md`.

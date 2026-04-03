@@ -62,6 +62,22 @@ npm test
 npm run doctor
 ```
 
+## Example Workflow Invocations
+
+Ask Claude Code to:
+
+- `Use superpowers-cc-to-codex:brainstorming to research implementation approaches in this repository before we write a spec.`
+- `Use superpowers-cc-to-codex:writing-plans to turn the approved design into an implementation plan.`
+- `Use superpowers-cc-to-codex:subagent-driven-development to execute Task 1 from the saved plan.`
+- `Use superpowers-cc-to-codex:requesting-code-review to review my branch against origin/main.`
+
+If a task resume looks stuck inside Claude Code, run the plugin's `codex-state` command.
+Repository maintainers can inspect the same state locally with:
+
+```bash
+node scripts/list-codex-state.mjs --cwd "$PWD"
+```
+
 ## License
 
 MIT License. See [LICENSE](LICENSE).
