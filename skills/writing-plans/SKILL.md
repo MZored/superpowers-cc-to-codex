@@ -21,7 +21,14 @@ disable-model-invocation: true
 You MUST create a task for each of these items and complete them in order:
 
 1. **Scope check** — if the spec covers multiple independent subsystems, suggest breaking into separate plans (one per subsystem, each producing working testable software)
-2. **Dispatch Codex plan drafter** — send the approved spec to `codex-plan-drafter` via `prompts/planning-brief.md`; the brief contains all task structure, granularity, and quality requirements
+2. **Dispatch Codex plan drafter** — use the Agent tool with `subagent_type: "codex-plan-drafter"`.
+   Pass the approved spec verbatim as the `prompt` body; do not summarize it.
+   Start the prompt with:
+   ```text
+   Turn this approved spec into a detailed implementation plan.
+
+   Paste the full approved spec below this line with no omissions or paraphrasing.
+   ```
 3. **Review the draft** — Claude reviews the returned plan against the spec (see Self-Review below)
 4. **Fix issues** — edit the plan inline to fix any gaps found in review
 5. **Save plan** — write to `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md` using `plan-template.md` header; commit

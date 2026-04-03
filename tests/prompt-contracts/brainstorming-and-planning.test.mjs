@@ -22,3 +22,13 @@ test('brainstorm and plan agents are thin codex forwarders', async () => {
   assert.doesNotMatch(researchAgent, /git commit/);
   assert.doesNotMatch(planAgent, /git commit/);
 });
+
+test('brainstorming and writing-plans dispatch named subagents instead of raw adapter commands', async () => {
+  const brainstorming = await read('skills/brainstorming/SKILL.md');
+  const planning = await read('skills/writing-plans/SKILL.md');
+
+  assert.match(brainstorming, /subagent_type:\s*"codex-brainstorm-researcher"/);
+  assert.match(planning, /subagent_type:\s*"codex-plan-drafter"/);
+  assert.doesNotMatch(brainstorming, /codex-run\.mjs/);
+  assert.doesNotMatch(planning, /codex-run\.mjs/);
+});

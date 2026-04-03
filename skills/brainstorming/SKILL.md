@@ -15,7 +15,7 @@ Help turn ideas into fully formed designs and specs through natural collaborativ
 
 Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
 
-**Codex integration:** Use `codex-brainstorm-researcher` for bounded repository research in Step 1. Claude stays in the main thread for all interactive and judgment work.
+**Codex integration:** Use the Agent tool with `subagent_type: "codex-brainstorm-researcher"` for bounded repository research in Step 1. Claude stays in the main thread for all interactive and judgment work.
 
 <HARD-GATE>
 Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
@@ -29,7 +29,14 @@ Every project goes through this process. A todo list, a single-function utility,
 
 You MUST create a task for each of these items and complete them in order:
 
-1. **Explore project context** — dispatch `codex-brainstorm-researcher` via `prompts/research-brief.md` to scan files, docs, recent commits; review the returned findings
+1. **Explore project context** — use the Agent tool with `subagent_type: "codex-brainstorm-researcher"`.
+   Pass a full `prompt` body that names the repository areas to inspect and the question to answer.
+   Example prompt:
+   ```text
+   Research the forwarding contract around scripts/, agents/, and tests/prompt-contracts/.
+   Explain how brainstorming, planning, implementation, review, debugging, and branch analysis currently reach Codex.
+   Call out any place where the skill docs still tell Claude to run commands directly.
+   ```
 2. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
 3. **Propose 2-3 approaches** — with trade-offs and your recommendation
 4. **Present design** — in sections scaled to their complexity, get user approval after each section
@@ -42,7 +49,7 @@ You MUST create a task for each of these items and complete them in order:
 
 **Understanding the idea:**
 
-- In Step 1, dispatch `codex-brainstorm-researcher` with `prompts/research-brief.md` to gather project context (structure, patterns, relevant code). Review the results before proceeding.
+- In Step 1, use the Agent tool with `subagent_type: "codex-brainstorm-researcher"` to gather project context (structure, patterns, relevant code). Pass a prompt describing what to research. Review the results before proceeding.
 - Before asking detailed questions, assess scope: if the request describes multiple independent subsystems, flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
 - If the project is too large for a single spec, help the user decompose into sub-projects. Then brainstorm the first sub-project through the normal design flow.
 - Ask questions one at a time to refine the idea
