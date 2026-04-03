@@ -1,0 +1,30 @@
+---
+paths:
+  - "skills/**"
+---
+
+# Skills
+
+Prompt-driven workflow definitions for forked Superpowers skills.
+
+## Structure
+
+Each skill directory contains:
+- `SKILL.md` — Orchestration checklist for Claude (the controller)
+- `prompts/*.md` — Detailed execution guidance sent to Codex agents
+- Optional templates (`*-template.md`) and supporting methodology docs
+
+## Conventions
+
+- SKILL.md is for Claude: concise checklists, status handling, decision points
+- prompts/ are for Codex: detailed task structure, self-review, escalation protocols
+- Every SKILL.md carries an upstream sync header referencing the original Superpowers skill
+- Hard gates prevent implementation without approved design (brainstorming skill)
+- Systematic debugging enforces root cause investigation before any fix attempt
+
+## Anti-Patterns
+
+- Putting detailed execution guidance in SKILL.md instead of prompts/
+- Creating skills without a Codex agent, schema, and prompt
+- Skipping the design approval gate in brainstorming
+- Fixing symptoms without root cause investigation (systematic-debugging)

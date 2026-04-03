@@ -22,3 +22,37 @@ test('implementer and reviewer agents forward to the adapter without doing git w
   assert.doesNotMatch(implementer, /git commit/);
   assert.doesNotMatch(reviewer, /git commit/);
 });
+
+test('TDD skill dispatches codex-implementer with TDD-specific prompt', async () => {
+  const skill = await read('skills/test-driven-development/SKILL.md');
+  assert.match(skill, /codex-run\.mjs.*implement/);
+  assert.match(skill, /tdd-implement-task\.md/);
+  assert.match(skill, /implementer-result\.schema\.json/);
+  assert.match(skill, /red-green-refactor/i);
+  assert.match(skill, /disable-model-invocation:\s*true/);
+});
+
+test('TDD prompt enforces test-first discipline', async () => {
+  const prompt = await read('skills/test-driven-development/prompts/tdd-implement-task.md');
+  assert.match(prompt, /NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST/);
+  assert.match(prompt, /implementer-result\.schema\.json/);
+});
+
+test('branch-analyzer agent forwards to the adapter in research mode', async () => {
+  const agent = await read('agents/codex-branch-analyzer.md');
+  assert.match(agent, /\$\{CLAUDE_PLUGIN_ROOT\}\/scripts\/codex-run\.mjs.*research/);
+  assert.match(agent, /branch-analysis\.schema\.json/);
+  assert.doesNotMatch(agent, /git commit/);
+  assert.doesNotMatch(agent, /git merge/);
+  assert.doesNotMatch(agent, /git push/);
+});
+
+test('finishing-a-development-branch skill presents structured options', async () => {
+  const skill = await read('skills/finishing-a-development-branch/SKILL.md');
+  assert.match(skill, /codex-branch-analyzer/);
+  assert.match(skill, /Merge back to/);
+  assert.match(skill, /Pull Request/);
+  assert.match(skill, /Keep the branch as-is/);
+  assert.match(skill, /Discard this work/);
+  assert.match(skill, /disable-model-invocation:\s*true/);
+});
