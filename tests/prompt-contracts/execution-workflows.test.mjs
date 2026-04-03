@@ -47,6 +47,16 @@ test('branch-analyzer agent forwards to the adapter in research mode', async () 
   assert.doesNotMatch(agent, /git push/);
 });
 
+test('debugging and branch-finish skills dispatch named research subagents', async () => {
+  const debugging = await read('skills/systematic-debugging/SKILL.md');
+  const finishing = await read('skills/finishing-a-development-branch/SKILL.md');
+
+  assert.match(debugging, /subagent_type:\s*"codex-debug-investigator"/);
+  assert.match(finishing, /subagent_type:\s*"codex-branch-analyzer"/);
+  assert.doesNotMatch(debugging, /codex-run\.mjs/);
+  assert.doesNotMatch(finishing, /codex-run\.mjs/);
+});
+
 test('finishing-a-development-branch skill presents structured options', async () => {
   const skill = await read('skills/finishing-a-development-branch/SKILL.md');
   assert.match(skill, /codex-branch-analyzer/);

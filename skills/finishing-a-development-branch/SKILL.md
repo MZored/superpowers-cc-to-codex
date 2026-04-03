@@ -12,8 +12,13 @@ disable-model-invocation: true
 # Finishing a Development Branch
 
 Keep Claude in the main thread for user interaction and git operations.
-Use `codex-branch-analyzer` for bounded branch readiness analysis.
-Use `prompts/branch-analysis-brief.md` when dispatching the analyzer.
+Use the Agent tool with `subagent_type: "codex-branch-analyzer"` for bounded branch readiness analysis.
+When dispatching the analyzer, pass a `prompt` body that includes the current branch name, base branch, and what kind of finish decision is needed.
+Example:
+```text
+Assess whether branch codex/agent-forwarding is ready to merge back to main.
+Call out failing tests, uncommitted work, or review gaps that would block a clean finish.
+```
 
 ## Overview
 
@@ -27,14 +32,12 @@ Guide completion of development work by presenting clear options and handling th
 
 ### Step 1: Dispatch Branch Analysis
 
-Run `codex-branch-analyzer` to assess branch state:
-
-```
-node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-run.mjs" research \
-  --cwd "$PWD" --taskId branch-analysis \
-  --model gpt-5.4-mini --effort low \
-  --schema "${CLAUDE_PLUGIN_ROOT}/schemas/branch-analysis.schema.json" \
-  --promptFile "${CLAUDE_PLUGIN_ROOT}/skills/finishing-a-development-branch/prompts/branch-analysis-brief.md"
+Use the Agent tool with `subagent_type: "codex-branch-analyzer"` to assess branch state.
+Pass a `prompt` body that includes the current branch name, base branch, and what kind of finish decision is needed.
+Example:
+```text
+Assess whether branch codex/agent-forwarding is ready to merge back to main.
+Call out failing tests, uncommitted work, or review gaps that would block a clean finish.
 ```
 
 ### Step 2: Review Analysis Results
