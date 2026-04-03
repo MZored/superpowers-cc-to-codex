@@ -1,6 +1,6 @@
 # Superpowers CC to Codex
 
-`superpowers-cc-to-codex` is a narrow Claude Code plugin fork of four workflows from [obra/superpowers](https://github.com/obra/superpowers). It is for people who want the Superpowers design, planning, implementation, and review loop, but with bounded work delegated to the public `codex` CLI while Claude stays in control of the main thread.
+`superpowers-cc-to-codex` is a narrow Claude Code plugin fork of five skills from [obra/superpowers](https://github.com/obra/superpowers). It is for people who want the Superpowers design, planning, implementation, review, and systematic debugging workflows, with bounded work delegated to the public `codex` CLI while Claude stays in control of the main thread.
 
 ## Install in Claude Code
 
@@ -33,16 +33,17 @@ If you want the original, broader Superpowers plugin instead of this Codex-backe
 
 ## How It Works
 
-Claude remains the controller. The plugin ships four forked workflows and thin forwarder agents under `agents/` that call `node scripts/codex-run.mjs` with structured prompts and JSON schemas. Codex performs the bounded task, Claude keeps spec review and workflow control, and task resume state is stored under `.claude/state/codex/` so plugin updates do not wipe active thread state.
+Claude remains the controller. The plugin ships five forked skills and thin forwarder agents under `agents/` that call `node scripts/codex-run.mjs` with structured prompts and JSON schemas. Codex performs the bounded task, Claude keeps spec review and workflow control, and task resume state is stored under `.claude/state/codex/` so plugin updates do not wipe active thread state.
 
-This plugin is intentionally narrower than upstream Superpowers: it does not ship the full skills library, and its four workflows are meant to be invoked explicitly when you want the Codex-backed path.
+This plugin is intentionally narrower than upstream Superpowers: it does not ship the full skills library, and its five skills are meant to be invoked explicitly when you want the Codex-backed path.
 
-## Included Workflows
+## Included Skills
 
 - `superpowers-cc-to-codex:brainstorming` - Claude-led brainstorming with bounded Codex repository research.
 - `superpowers-cc-to-codex:writing-plans` - Claude-owned plan writing with Codex producing the first-pass task breakdown.
 - `superpowers-cc-to-codex:subagent-driven-development` - Claude-controlled execution loop with Codex implementer and reviewer forwarders.
 - `superpowers-cc-to-codex:requesting-code-review` - Codex-backed diff review, either structured or advisory.
+- `superpowers-cc-to-codex:systematic-debugging` - Systematic 4-phase debugging with Codex-backed root cause investigation.
 
 ## Requirements
 
@@ -53,7 +54,7 @@ This plugin is intentionally narrower than upstream Superpowers: it does not shi
 
 ## Verify
 
-For plugin users, start a new Claude Code session and explicitly ask Claude to use one of the four forked workflows.
+For plugin users, start a new Claude Code session and explicitly ask Claude to use one of the five forked skills.
 
 For repository maintainers, run:
 
@@ -70,6 +71,7 @@ Ask Claude Code to:
 - `Use superpowers-cc-to-codex:writing-plans to turn the approved design into an implementation plan.`
 - `Use superpowers-cc-to-codex:subagent-driven-development to execute Task 1 from the saved plan.`
 - `Use superpowers-cc-to-codex:requesting-code-review to review my branch against origin/main.`
+- `Use superpowers-cc-to-codex:systematic-debugging to investigate this test failure before we attempt a fix.`
 
 If a task resume looks stuck inside Claude Code, run the plugin's `codex-state` command.
 Repository maintainers can inspect the same state locally with:

@@ -13,6 +13,11 @@
       "forkPath": "skills/requesting-code-review/SKILL.md",
       "upstreamPath": "skills/requesting-code-review/SKILL.md",
       "expectedStatus": "drifted"
+    },
+    {
+      "forkPath": "skills/systematic-debugging/SKILL.md",
+      "upstreamPath": "skills/systematic-debugging/SKILL.md",
+      "expectedStatus": "drifted"
     }
   ]
 }

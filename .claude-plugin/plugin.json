@@ -1,7 +1,7 @@
 {
   "name": "superpowers-cc-to-codex",
   "version": "0.1.0",
-  "description": "Codex-backed workflow fork of four superpowers workflows for research, planning, implementation, and review.",
+  "description": "Codex-backed workflow fork of five superpowers skills for research, planning, implementation, review, and systematic debugging.",
   "author": {
     "name": "mzored"
   },

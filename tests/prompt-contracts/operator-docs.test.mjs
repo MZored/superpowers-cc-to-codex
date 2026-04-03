@@ -13,7 +13,7 @@ test('doctor command points to the maintained preflight checks', async () => {
   assert.match(doctor, /claude plugin validate/);
 });
 
-test('README documents marketplace install, upstream superpowers reference, license, and the four forked skills', async () => {
+test('README documents marketplace install, upstream superpowers reference, license, and the five forked skills', async () => {
   const readme = await read('README.md');
   assert.match(readme, /\/plugin marketplace add mzored\/superpowers-cc-to-codex/);
   assert.match(readme, /\/plugin install superpowers-cc-to-codex@superpowers-cc-to-codex/);
@@ -25,6 +25,7 @@ test('README documents marketplace install, upstream superpowers reference, lice
   assert.match(readme, /superpowers-cc-to-codex:writing-plans/);
   assert.match(readme, /superpowers-cc-to-codex:subagent-driven-development/);
   assert.match(readme, /superpowers-cc-to-codex:requesting-code-review/);
+  assert.match(readme, /superpowers-cc-to-codex:systematic-debugging/);
 });
 
 test('operator docs cover codex state inspection and workflow examples', async () => {

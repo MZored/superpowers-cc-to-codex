@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["root_cause", "evidence", "working_examples", "hypothesis", "suggested_fix"],
+  "properties": {
+    "root_cause": { "type": "string" },
+    "evidence": { "type": "array", "items": { "type": "string" } },
+    "working_examples": { "type": "array", "items": { "type": "string" } },
+    "hypothesis": { "type": "string" },
+    "suggested_fix": { "type": "string" }
+  }
+}
