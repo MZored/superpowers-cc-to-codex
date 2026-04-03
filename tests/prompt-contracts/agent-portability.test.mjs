@@ -6,14 +6,19 @@ async function read(relativePath) {
   return readFile(new URL(`../../${relativePath}`, import.meta.url), 'utf8');
 }
 
-test('all agent commands resolve bundled assets via CLAUDE_PLUGIN_ROOT', async () => {
+test('all six agents are bash-only forwarders that resolve bundled assets via CLAUDE_PLUGIN_ROOT', async () => {
   for (const relativePath of [
     'agents/codex-brainstorm-researcher.md',
     'agents/codex-plan-drafter.md',
+    'agents/codex-debug-investigator.md',
+    'agents/codex-branch-analyzer.md',
     'agents/codex-implementer.md',
     'agents/codex-reviewer.md'
   ]) {
     const body = await read(relativePath);
+    assert.match(body, /^---[\s\S]*tools:\s*Bash/m);
+    assert.match(body, /Run exactly one Bash call/);
+    assert.match(body, /Do not inspect the repository/i);
     assert.match(body, /\$\{CLAUDE_PLUGIN_ROOT\}\/scripts\/codex-run\.mjs/);
     if (body.includes('--schema ')) {
       assert.match(body, /\$\{CLAUDE_PLUGIN_ROOT\}\/schemas\//);
@@ -24,5 +29,6 @@ test('all agent commands resolve bundled assets via CLAUDE_PLUGIN_ROOT', async (
       assert.doesNotMatch(body, /--promptFile skills\//);
     }
     assert.doesNotMatch(body, /node scripts\/codex-run\.mjs/);
+    assert.doesNotMatch(body, /model:\s*inherit/);
   }
 });
