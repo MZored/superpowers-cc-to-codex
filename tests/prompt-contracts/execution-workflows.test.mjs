@@ -25,9 +25,8 @@ test('implementer and reviewer agents forward to the adapter without doing git w
 
 test('TDD skill dispatches codex-implementer with TDD-specific prompt', async () => {
   const skill = await read('skills/test-driven-development/SKILL.md');
-  assert.match(skill, /codex-run\.mjs.*implement/);
+  assert.match(skill, /subagent_type:\s*"codex-implementer"/);
   assert.match(skill, /tdd-implement-task\.md/);
-  assert.match(skill, /implementer-result\.schema\.json/);
   assert.match(skill, /red-green-refactor/i);
   assert.match(skill, /disable-model-invocation:\s*true/);
 });
@@ -65,4 +64,24 @@ test('finishing-a-development-branch skill presents structured options', async (
   assert.match(skill, /Keep the branch as-is/);
   assert.match(skill, /Discard this work/);
   assert.match(skill, /disable-model-invocation:\s*true/);
+});
+
+test('implementer agent documents task headers, resume headers, and prompt-file overrides', async () => {
+  const implementer = await read('agents/codex-implementer.md');
+  assert.match(implementer, /^---[\s\S]*tools:\s*Bash/m);
+  assert.match(implementer, /Task ID:/);
+  assert.match(implementer, /RESUME_SESSION:/);
+  assert.match(implementer, /PROMPT_FILE:/);
+  assert.match(implementer, /codex-run\.mjs.*resume/);
+});
+
+test('execution skills dispatch codex-implementer with structured prompt headers', async () => {
+  const workflow = await read('skills/subagent-driven-development/SKILL.md');
+  const tdd = await read('skills/test-driven-development/SKILL.md');
+
+  assert.match(workflow, /subagent_type:\s*"codex-implementer"/);
+  assert.match(workflow, /Task ID:\s*task-17/);
+  assert.match(workflow, /RESUME_SESSION:/);
+  assert.match(tdd, /PROMPT_FILE:\s*test-driven-development\/prompts\/tdd-implement-task\.md/);
+  assert.doesNotMatch(tdd, /codex-run\.mjs/);
 });

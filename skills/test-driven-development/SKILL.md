@@ -12,7 +12,7 @@ disable-model-invocation: true
 # Test-Driven Development
 
 Keep Claude in the main thread for user interaction and task acceptance.
-Use `codex-implementer` with `prompts/tdd-implement-task.md` for TDD-disciplined implementation.
+Use the Agent tool with `subagent_type: "codex-implementer"` with `PROMPT_FILE: test-driven-development/prompts/tdd-implement-task.md` for TDD-disciplined implementation.
 Reference `testing-anti-patterns.md` when reviewing Codex output for testing quality.
 
 ## Overview
@@ -49,14 +49,14 @@ If acceptance criteria are unclear, ask the user before dispatching.
 
 ### Step 2: Dispatch Codex Implementer with TDD Prompt
 
-Run `codex-implementer` with the TDD-specific prompt:
+Use the Agent tool with `subagent_type: "codex-implementer"` and pass this `prompt` body:
 
-```
-node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-run.mjs" implement \
-  --cwd "$PWD" --taskId <TASK_ID> \
-  --model gpt-5.4 --effort medium \
-  --schema "${CLAUDE_PLUGIN_ROOT}/schemas/implementer-result.schema.json" \
-  --promptFile "${CLAUDE_PLUGIN_ROOT}/skills/test-driven-development/prompts/tdd-implement-task.md"
+```text
+Task ID: task-17
+PROMPT_FILE: test-driven-development/prompts/tdd-implement-task.md
+
+Implement the requested behavior with strict red-green-refactor discipline.
+Write the failing test first, then the minimal production change, then refactor only if the tests still pass.
 ```
 
 ### Step 3: Verify TDD Evidence in Results
@@ -81,11 +81,12 @@ When Codex returns, check:
 
 If the `tests` array is empty or implementation lacks red-green evidence:
 
-```
-node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-run.mjs" resume \
-  --cwd "$PWD" --taskId <TASK_ID> \
-  --model gpt-5.4 --effort medium \
-  --promptFile "${CLAUDE_PLUGIN_ROOT}/skills/subagent-driven-development/prompts/fix-task.md"
+```text
+Task ID: task-17
+RESUME_SESSION: <session-id-from-previous-run>
+PROMPT_FILE: test-driven-development/prompts/tdd-implement-task.md
+
+Fix the failing test: <describe what needs fixing>
 ```
 
 Resume instruction: "Tests must be written BEFORE implementation. Delete any production code written without a failing test. Start the red-green-refactor cycle from scratch."

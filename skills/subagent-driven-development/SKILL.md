@@ -11,7 +11,7 @@ disable-model-invocation: true
 
 # Subagent-Driven Development
 
-Execute plan by dispatching `codex-implementer` per task, with two-stage review after each: Claude-side spec compliance first, then `codex-reviewer` for code quality.
+Execute plan by dispatching `codex-implementer` per task via the Agent tool, with two-stage review after each: Claude-side spec compliance first, then `codex-reviewer` for code quality.
 
 **Core principle:** Codex implementer per task + two-stage review (spec then quality) = high quality, fast iteration
 
@@ -26,15 +26,32 @@ You MUST create a task for each plan task and complete them in order.
 
 **Per task:**
 
-3. **Dispatch implementer** — send full task text + context to `codex-implementer` via `prompts/implement-task.md` (the brief contains TDD, self-review, escalation, and report format requirements)
+3. **Dispatch implementer** — use the Agent tool with `subagent_type: "codex-implementer"`.
+   Pass the task as a `prompt` body in this exact shape:
+   ```text
+   Task ID: task-17
+
+   Implement Task 3 from docs/superpowers/plans/2026-04-03-agent-forwarding.md.
+   Keep the work scoped to agents/codex-implementer.md and tests/prompt-contracts/execution-workflows.test.mjs.
+   Follow the implementation brief from skills/subagent-driven-development/prompts/implement-task.md.
+   ```
 4. **Handle status** — see Status Handling below
-5. **Spec compliance review** — Claude reads the actual code and verifies against spec using `spec-review-template.md` (contains verification methodology); if issues: resume the Codex thread with `prompts/fix-task.md`
+5. **Spec compliance review** — Claude reads the actual code and verifies against spec using `spec-review-template.md`; if issues remain, resume the same implementer thread with:
+   ```text
+   Task ID: task-17
+   RESUME_SESSION: 019d4f82-58b8-72d3-9212-2e3d3fc69bcb
+
+   Fix these issues:
+   - The agent still lacks tools: Bash.
+   - The prompt-file override is ignored in the TDD path.
+   ```
 6. **Code quality review** — dispatch `codex-reviewer` only after spec compliance passes
 7. **Mark complete** — only after both gates pass
 
 **After all tasks:**
 
-8. **Final review** — dispatch `codex-reviewer` for the entire implementation
+8. **Final review** — use the Agent tool with `subagent_type: "codex-reviewer"` for the entire implementation.
+   Pass a fresh structured review prompt with a new task ID and the final base SHA.
 9. **Finish branch** — wrap up the development branch
 
 ## Status Handling
