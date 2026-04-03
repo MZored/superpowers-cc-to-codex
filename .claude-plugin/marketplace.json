@@ -1,5 +1,6 @@
 {
   "name": "superpowers-cc-to-codex",
+  "description": "Marketplace for the Codex-backed fork of four Superpowers workflows.",
   "owner": {
     "name": "mzored"
   },

@@ -32,19 +32,23 @@ async function loadUpstreamBody(upstreamPath, sourceDir) {
   return response.text();
 }
 
-export async function compareForkToUpstream({ forkPath, upstreamPath, sourceDir }) {
+export async function compareForkToUpstream({ forkPath, upstreamPath, sourceDir, expectedStatus = 'drifted' }) {
   const [forkBody, upstreamBody, metadata] = await Promise.all([
     readFile(forkPath, 'utf8'),
     loadUpstreamBody(upstreamPath, sourceDir),
     detectUpstreamMetadata(forkPath)
   ]);
 
+  const status = normalizeSkillBody(forkBody) === normalizeSkillBody(upstreamBody) ? 'in_sync' : 'drifted';
+
   return {
     forkPath,
     upstreamPath,
     source: metadata.source,
     lastSynced: metadata.lastSynced,
-    status: normalizeSkillBody(forkBody) === normalizeSkillBody(upstreamBody) ? 'in_sync' : 'drifted'
+    status,
+    expectedStatus,
+    matchesExpectation: status === expectedStatus
   };
 }
 
@@ -63,13 +67,17 @@ async function main() {
       await compareForkToUpstream({
         forkPath: entry.forkPath,
         upstreamPath: entry.upstreamPath,
-        sourceDir: values.sourceDir
+        sourceDir: values.sourceDir,
+        expectedStatus: entry.expectedStatus
       })
     );
   }
 
-  const drifted = reports.filter((report) => report.status === 'drifted').length;
-  console.log(JSON.stringify({ checked: reports.length, drifted, reports }, null, 2));
+  const unexpected = reports.filter((report) => !report.matchesExpectation).length;
+  console.log(JSON.stringify({ checked: reports.length, unexpected, reports }, null, 2));
+  if (unexpected > 0) {
+    process.exit(1);
+  }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
