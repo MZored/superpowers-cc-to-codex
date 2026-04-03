@@ -11,9 +11,9 @@ disable-model-invocation: true
 
 # Requesting Code Review
 
-Dispatch `codex-reviewer` to catch issues before they cascade. The reviewer gets precisely crafted context for evaluation — never your session's history. This keeps the reviewer focused on the work product, not your thought process, and preserves your own context for continued work.
+Use the Agent tool with `subagent_type: "codex-reviewer"` to catch issues before they cascade. The reviewer gets precisely crafted context for evaluation — never your session's history. This keeps the reviewer focused on the work product, not your thought process, and preserves your own context for continued work.
 
-Use `prompts/review-brief.md` when dispatching the reviewer.
+When dispatching the reviewer, pass a structured `prompt` body with headers matching the review type needed.
 
 **Core principle:** Review early, review often.
 
@@ -39,8 +39,39 @@ HEAD_SHA=$(git rev-parse HEAD)
 
 **2. Dispatch `codex-reviewer`:**
 
-Use structured `codex exec` review when the controller needs machine-parseable output for a base or commit selector.
-Use natural-language `codex review` for advisory base, commit, or uncommitted review flows.
+Use the Agent tool with `subagent_type: "codex-reviewer"`.
+Pass one of these `prompt` shapes:
+
+```text
+Task ID: task-17-review
+REVIEW_TYPE: structured
+BASE: origin/main
+
+Review Task 4 from docs/superpowers/plans/2026-04-03-agent-forwarding.md for correctness, regressions, and missing tests.
+```
+
+```text
+Task ID: task-17-advisory
+REVIEW_TYPE: advisory
+BASE: origin/main
+
+Give concise advisory feedback on the diff since origin/main.
+```
+
+```text
+Task ID: task-17-commit
+REVIEW_TYPE: commit
+COMMIT: abc1234
+
+Review only commit abc1234 for correctness and risk.
+```
+
+```text
+Task ID: task-17-uncommitted
+REVIEW_TYPE: uncommitted
+
+Review only the uncommitted worktree changes.
+```
 
 **Provide:**
 - `{WHAT_WAS_IMPLEMENTED}` - What you just built

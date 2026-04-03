@@ -75,6 +75,28 @@ test('implementer agent documents task headers, resume headers, and prompt-file 
   assert.match(implementer, /codex-run\.mjs.*resume/);
 });
 
+test('reviewer agent documents review headers and review-type routing', async () => {
+  const reviewer = await read('agents/codex-reviewer.md');
+  assert.match(reviewer, /^---[\s\S]*tools:\s*Bash/m);
+  assert.match(reviewer, /REVIEW_TYPE:\s*structured/);
+  assert.match(reviewer, /REVIEW_TYPE:\s*advisory/);
+  assert.match(reviewer, /REVIEW_TYPE:\s*commit/);
+  assert.match(reviewer, /REVIEW_TYPE:\s*uncommitted/);
+  assert.match(reviewer, /codex-run\.mjs.*review/);
+});
+
+test('review workflow docs dispatch codex-reviewer with structured headers', async () => {
+  const workflow = await read('skills/subagent-driven-development/SKILL.md');
+  const review = await read('skills/requesting-code-review/SKILL.md');
+
+  assert.match(workflow, /subagent_type:\s*"codex-reviewer"/);
+  assert.match(workflow, /REVIEW_TYPE:\s*structured/);
+  assert.match(review, /REVIEW_TYPE:\s*advisory/);
+  assert.match(review, /REVIEW_TYPE:\s*commit/);
+  assert.match(review, /REVIEW_TYPE:\s*uncommitted/);
+  assert.doesNotMatch(review, /codex-run\.mjs/);
+});
+
 test('execution skills dispatch codex-implementer with structured prompt headers', async () => {
   const workflow = await read('skills/subagent-driven-development/SKILL.md');
   const tdd = await read('skills/test-driven-development/SKILL.md');

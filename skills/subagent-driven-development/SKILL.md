@@ -45,7 +45,16 @@ You MUST create a task for each plan task and complete them in order.
    - The agent still lacks tools: Bash.
    - The prompt-file override is ignored in the TDD path.
    ```
-6. **Code quality review** — dispatch `codex-reviewer` only after spec compliance passes
+6. **Code quality review** — use the Agent tool with `subagent_type: "codex-reviewer"` only after spec compliance passes.
+   Pass this `prompt` body:
+   ```text
+   Task ID: task-17-review
+   REVIEW_TYPE: structured
+   BASE: origin/main
+
+   Review the implementation of Task 4 from docs/superpowers/plans/2026-04-03-agent-forwarding.md.
+   Focus on regressions, incorrect routing, and missing test coverage.
+   ```
 7. **Mark complete** — only after both gates pass
 
 **After all tasks:**
