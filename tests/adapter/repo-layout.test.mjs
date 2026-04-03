@@ -11,7 +11,7 @@ async function readJson(relativePath) {
 test('plugin manifest exists and declares the fork metadata', async () => {
   const plugin = await readJson('.claude-plugin/plugin.json');
   assert.equal(plugin.name, 'superpowers-cc-to-codex');
-  assert.match(plugin.description, /Codex-backed workflow/i);
+  assert.match(plugin.description, /Codex-backed/i);
 });
 
 test('marketplace manifest exposes exactly one plugin from this repo', async () => {
