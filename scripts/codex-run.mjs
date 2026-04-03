@@ -76,6 +76,7 @@ export function buildInvocation({
   commit,
   uncommitted = false,
   sessionId,
+  taskText,
   dryRun = false
 }) {
   assertSupportedMode(mode);
@@ -109,6 +110,7 @@ export function buildInvocation({
         commit,
         uncommitted,
         taskId,
+        taskText,
         serviceTier: effectiveServiceTier
       };
     }
@@ -126,6 +128,7 @@ export function buildInvocation({
       mode,
       promptFile,
       taskId,
+      taskText,
       sessionId,
       serviceTier: effectiveServiceTier
     };
@@ -153,10 +156,18 @@ export function buildInvocation({
     promptFile,
     mode,
     taskId,
+    taskText,
     base,
     commit,
     serviceTier: effectiveServiceTier
   };
+}
+
+export function composePromptText(template, taskText) {
+  if (!template && !taskText) return undefined;
+  if (!template) return taskText;
+  if (!taskText) return template;
+  return `${template}\n\n## Your Task\n\n${taskText}`;
 }
 
 export function extractThreadId(jsonl) {
@@ -193,25 +204,25 @@ function stripFastServiceTier(command) {
   return stripped;
 }
 
-async function buildPrompt(invocation) {
-  const promptBody = invocation.promptFile ? await readFile(invocation.promptFile, 'utf8') : undefined;
+export async function buildPrompt(invocation) {
+  const template = invocation.promptFile ? await readFile(invocation.promptFile, 'utf8') : undefined;
 
   if (invocation.mode !== 'review') {
-    return promptBody;
+    return composePromptText(template, invocation.taskText);
   }
 
   if (invocation.uncommitted) {
     // Advisory uncommitted review: prompt is passed separately to codex review --uncommitted
-    return promptBody;
+    return template;
   }
 
   if (!invocation.base && !invocation.commit) {
-    return promptBody;
+    return template;
   }
 
   return buildStructuredReviewPrompt({
     cwd: invocation.cwd,
-    promptBody: promptBody ?? '',
+    promptBody: composePromptText(template, invocation.taskText) ?? '',
     base: invocation.base,
     commit: invocation.commit
   });
@@ -261,6 +272,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   });
 
   const mode = positionals[0];
+  const taskText = positionals.slice(1).join(' ') || undefined;
   // Validate early to fail before any async I/O (buildInvocation also validates).
   assertSupportedMode(mode);
   const cwd = values.cwd ?? process.cwd();
@@ -283,6 +295,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     commit: values.commit,
     uncommitted: values.uncommitted ?? false,
     sessionId: values.sessionId ?? savedState?.sessionId,
+    taskText,
     dryRun: values.dryRun ?? false
   });
 

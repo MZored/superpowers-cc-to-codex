@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { buildInvocation, extractThreadId } from '../../scripts/codex-run.mjs';
+import { buildInvocation, extractThreadId, composePromptText, buildPrompt } from '../../scripts/codex-run.mjs';
+import { mkdtemp, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
@@ -113,4 +116,77 @@ test('dry-run CLI emits one JSON document', async () => {
   const parsed = JSON.parse(stdout);
   assert.equal(parsed.mode, 'implement');
   assert.equal(parsed.command[0], 'codex');
+});
+
+test('composePromptText merges template and task text with the task marker', () => {
+  assert.equal(composePromptText(undefined, undefined), undefined);
+  assert.equal(composePromptText(undefined, 'Build the auth endpoint.'), 'Build the auth endpoint.');
+  assert.equal(composePromptText('# Template', undefined), '# Template');
+  assert.equal(
+    composePromptText('# Template', 'Build the auth endpoint.'),
+    '# Template\n\n## Your Task\n\nBuild the auth endpoint.'
+  );
+});
+
+test('buildPrompt ignores task text for uncommitted advisory review', async () => {
+  const prompt = await buildPrompt({
+    mode: 'review',
+    cwd: process.cwd(),
+    uncommitted: true,
+    promptFile: new URL('../fixtures/codex/implement-prompt.md', import.meta.url).pathname,
+    taskText: 'This line must not be appended.'
+  });
+
+  assert.doesNotMatch(prompt, /This line must not be appended\./);
+});
+
+test('buildPrompt appends task text before structured review scope', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'sp-forwarding-review-'));
+  await execFileAsync('git', ['init', '-q'], { cwd: root });
+  await execFileAsync('git', ['config', 'user.email', 'plan@example.com'], { cwd: root });
+  await execFileAsync('git', ['config', 'user.name', 'Plan Writer'], { cwd: root });
+  await writeFile(join(root, 'note.txt'), 'before\n', 'utf8');
+  await execFileAsync('git', ['add', 'note.txt'], { cwd: root });
+  await execFileAsync('git', ['commit', '-m', 'init', '-q'], { cwd: root });
+  await writeFile(join(root, 'note.txt'), 'after\n', 'utf8');
+
+  const prompt = await buildPrompt({
+    mode: 'review',
+    cwd: root,
+    base: 'HEAD',
+    promptFile: new URL('../fixtures/codex/implement-prompt.md', import.meta.url).pathname,
+    taskText: 'Review only the forwarding rewrite.'
+  });
+
+  assert.match(prompt, /## Your Task\n\nReview only the forwarding rewrite\./);
+  assert.match(prompt, /## Diff Scope/);
+});
+
+test('dry-run CLI preserves positional task text on the invocation object', async () => {
+  const scriptPath = new URL('../../scripts/codex-run.mjs', import.meta.url);
+  const { stdout } = await execFileAsync(
+    process.execPath,
+    [
+      scriptPath.pathname,
+      'implement',
+      'Build the auth endpoint.',
+      '--cwd',
+      process.cwd(),
+      '--taskId',
+      'task-17',
+      '--model',
+      'gpt-5.4',
+      '--effort',
+      'medium',
+      '--schema',
+      'schemas/implementer-result.schema.json',
+      '--promptFile',
+      'tests/fixtures/codex/implement-prompt.md',
+      '--dryRun'
+    ],
+    { cwd: process.cwd() }
+  );
+
+  const parsed = JSON.parse(stdout);
+  assert.equal(parsed.taskText, 'Build the auth endpoint.');
 });
