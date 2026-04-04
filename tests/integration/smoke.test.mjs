@@ -1,3 +1,12 @@
+/**
+ * smoke.test.mjs — codex-run.mjs integration smoke tests.
+ *
+ * Exercises the Codex CLI adapter (scripts/codex-run.mjs) by spawning real
+ * Codex processes for all 6 workflow agent modes.
+ *
+ * For the stdio MCP server smoke test (initialize + tools/list handshake),
+ * see tests/integration/mcp-server-smoke.test.mjs.
+ */
 import { before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';

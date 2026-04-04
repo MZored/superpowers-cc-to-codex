@@ -8,10 +8,15 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "node --test 'tests/adapter/*.test.mjs' 'tests/prompt-contracts/*.test.mjs'",
+    "test": "node --test 'tests/adapter/*.test.mjs' 'tests/prompt-contracts/*.test.mjs' 'tests/mcp-server/*.test.mjs'",
     "validate:plugin": "claude plugin validate .",
     "doctor": "node scripts/doctor.mjs",
     "check:upstream": "node scripts/check-upstream-superpowers.mjs",
-    "smoke-test": "node --test tests/integration/smoke.test.mjs"
+    "smoke-test": "node --test tests/integration/smoke.test.mjs",
+    "smoke-test:mcp": "node --test tests/integration/mcp-server-smoke.test.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.3.6"
   }
 }
