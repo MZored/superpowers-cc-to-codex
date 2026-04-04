@@ -33,7 +33,9 @@ If you want the original, broader Superpowers plugin instead of this Codex-backe
 
 ## How It Works
 
-Claude remains the controller. The plugin ships forked skills and thin forwarder agents under `agents/` that call `node scripts/codex-run.mjs` with structured prompts and JSON schemas. Codex performs the bounded task, Claude keeps spec review and workflow control, and task resume state is stored under `.claude/state/codex/` so plugin updates do not wipe active thread state.
+Claude remains the controller. The plugin registers a bundled MCP server (`scripts/mcp-server.mjs`) as the primary transport for Codex delegation — Claude invokes it via the `mcpServers.codex` entry in the plugin manifest. The MCP server delegates all Codex CLI calls through `scripts/codex-run.mjs`. Codex performs the bounded task, Claude keeps spec review and workflow control, and task resume state is stored under `.claude/state/codex/` so plugin updates do not wipe active thread state.
+
+The `agents/` directory contains deprecated compatibility shims retained for phase 1 backward compatibility; they are not the primary dispatch path.
 
 This plugin is intentionally narrower than upstream Superpowers: it does not ship the full skills library, and its skills are meant to be invoked explicitly when you want the Codex-backed path.
 

@@ -1,7 +1,7 @@
 {
   "name": "superpowers-cc-to-codex",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "Standalone Claude Code plugin that forks selected superpowers workflows for Codex-backed execution.",
   "engines": {
@@ -9,7 +9,7 @@
   },
   "scripts": {
     "test": "node --test 'tests/adapter/*.test.mjs' 'tests/prompt-contracts/*.test.mjs' 'tests/mcp-server/*.test.mjs'",
-    "validate:plugin": "claude plugin validate .",
+    "validate:plugin": "claude plugin validate .claude-plugin/plugin.json",
     "doctor": "node scripts/doctor.mjs",
     "check:upstream": "node scripts/check-upstream-superpowers.mjs",
     "smoke-test": "node --test tests/integration/smoke.test.mjs",

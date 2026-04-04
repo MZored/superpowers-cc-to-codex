@@ -2,7 +2,7 @@
 
 ## Overview
 
-Claude Code plugin that forks five Superpowers workflows (brainstorming, planning, implementation, review, debugging) for Codex-backed execution. Claude stays in control of the main thread; bounded work is delegated to the public `codex` CLI.
+Claude Code plugin that forks seven Superpowers workflows for Codex-backed execution. Claude stays in control of the main thread; bounded work is delegated to the public `codex` CLI.
 
 ## Setup
 
@@ -40,7 +40,8 @@ Claude is the controller. Codex is a bounded worker.
 ```
 User ↔ Claude (controller)
          ├─ skills/         → SKILL.md workflow + prompts/ sent to Codex
-         ├─ agents/         → Thin forwarders calling codex-run.mjs
+         ├─ scripts/mcp-server.mjs → MCP server (primary transport, registered in plugin.json)
+         ├─ agents/         → Deprecated compatibility shims (phase 1, not primary path)
          ├─ scripts/        → codex-run.mjs is the ONLY Codex CLI adapter
          ├─ schemas/        → JSON schemas for Codex I/O contracts
          └─ .claude/state/  → Task resume state (survives plugin updates)
@@ -50,13 +51,14 @@ User ↔ Claude (controller)
 
 | File | Role |
 |------|------|
+| `scripts/mcp-server.mjs` | MCP server — primary transport for Codex delegation |
 | `scripts/codex-run.mjs` | Single adapter for all Codex CLI invocations |
 | `scripts/lib/codex-state.mjs` | Task state persistence (load/save) |
 | `scripts/detect-codex.mjs` | Runtime detection of codex CLI binary |
-| `.claude-plugin/plugin.json` | Plugin metadata and registration |
+| `.claude-plugin/plugin.json` | Plugin metadata, MCP server registration |
 | `.claude-plugin/marketplace.json` | Marketplace configuration |
 
-### Five Forked Skills
+### Forked Skills
 
 | Skill | Purpose | Agent |
 |-------|---------|-------|
@@ -65,6 +67,8 @@ User ↔ Claude (controller)
 | `subagent-driven-development` | Task execution with implementer + reviewer | `codex-implementer` |
 | `requesting-code-review` | Structured or advisory diff review | `codex-reviewer` |
 | `systematic-debugging` | 4-phase debugging with root cause investigation | `codex-debug-investigator` |
+| `test-driven-development` | Strict TDD via Codex implementer with red-green-refactor prompt | `codex-implementer` |
+| `finishing-a-development-branch` | Branch completion with Codex readiness analysis | `codex-branch-analyzer` |
 
 ## Conventions
 
@@ -72,7 +76,7 @@ User ↔ Claude (controller)
 
 - ES modules exclusively (`.mjs` files, `"type": "module"`)
 - Node.js built-in imports use `node:` prefix (`node:fs/promises`, `node:path`)
-- No TypeScript, no bundler, no external dependencies
+- No TypeScript, no bundler. External dependencies limited to the MCP SDK and Zod.
 - Each skill: `skills/{name}/SKILL.md` + `skills/{name}/prompts/*.md`
 - Each agent: `agents/codex-{role}.md` (thin forwarder)
 - Each schema: `schemas/{workflow}.schema.json`
