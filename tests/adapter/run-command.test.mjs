@@ -20,3 +20,14 @@ test('runCommand forwards stdin to the child process', async () => {
 
   assert.equal(stdout, 'CODEX\n');
 });
+
+test('runCommand terminates the child when the abort signal fires', async () => {
+  const controller = new AbortController();
+  const promise = runCommand(process.execPath, ['-e', 'setTimeout(() => {}, 10_000)'], {
+    signal: controller.signal
+  });
+
+  controller.abort();
+
+  await assert.rejects(promise, /aborted|signal|terminated/i);
+});

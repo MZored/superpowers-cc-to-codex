@@ -200,6 +200,38 @@ test('runCodexWorkflow returns parsed output and persists thread state', async (
   assert.equal(saves[0].state.sessionId, 'thread-123');
 });
 
+test('runCodexWorkflow forwards signal and onSpawn to the executor as execution options', async () => {
+  let capturedOptions;
+  const controller = new AbortController();
+  const onSpawn = (child) => child;
+
+  await runCodexWorkflow({
+    mode: 'implement',
+    cwd: '/repo',
+    taskId: 'task-sig',
+    taskText: 'test signal forwarding',
+    signal: controller.signal,
+    onSpawn,
+    runtimeDetector: async () => ({
+      installed: true,
+      authenticated: true,
+      authProvider: 'chatgpt',
+      version: 'codex-cli 0.111.0'
+    }),
+    executor: async (invocation, options) => {
+      capturedOptions = options;
+      return { stdout: '', stderr: '', code: 0 };
+    },
+    stateStore: {
+      loadRequired: async () => null,
+      save: async () => {}
+    }
+  });
+
+  assert.equal(capturedOptions.signal, controller.signal);
+  assert.equal(capturedOptions.onSpawn, onSpawn);
+});
+
 test('dry-run CLI preserves positional task text on the invocation object', async () => {
   const scriptPath = new URL('../../scripts/codex-run.mjs', import.meta.url);
   const { stdout } = await execFileAsync(
