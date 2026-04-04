@@ -8,9 +8,10 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "node --test",
+    "test": "node --test 'tests/adapter/*.test.mjs' 'tests/prompt-contracts/*.test.mjs'",
     "validate:plugin": "claude plugin validate .",
     "doctor": "node scripts/doctor.mjs",
-    "check:upstream": "node scripts/check-upstream-superpowers.mjs"
+    "check:upstream": "node scripts/check-upstream-superpowers.mjs",
+    "smoke-test": "node --test tests/integration/smoke.test.mjs"
   }
 }
