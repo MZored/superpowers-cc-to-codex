@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { buildInvocation } from '../../scripts/codex-run.mjs';
+import { buildInvocation, runCodexWorkflow } from '../../scripts/codex-run.mjs';
 import { loadRequiredTaskState } from '../../scripts/lib/codex-state.mjs';
 
 test('buildInvocation rejects unsupported modes', () => {
@@ -11,6 +11,44 @@ test('buildInvocation rejects unsupported modes', () => {
     () => buildInvocation({ mode: 'invalid', cwd: '/repo', taskId: 'task-invalid' }),
     /Unsupported mode: invalid/
   );
+});
+
+test('runCodexWorkflow validates resume output and persists salvaged partial state', async () => {
+  const saves = [];
+
+  await assert.rejects(
+    () =>
+      runCodexWorkflow({
+        mode: 'resume',
+        cwd: '/repo',
+        taskId: 'task-17',
+        sessionId: 'thread-123',
+        schemaPath: '/repo/schemas/implementer-result.schema.json',
+        promptFile: '/repo/skills/subagent-driven-development/prompts/fix-task.md',
+        runtimeDetector: async () => ({
+          installed: true,
+          authenticated: true,
+          authProvider: 'chatgpt',
+          version: 'codex-cli 0.111.0'
+        }),
+        executor: async () => {
+          const error = new Error('timed out');
+          error.stdout = [
+            '{"type":"thread.started","thread_id":"thread-123"}',
+            '{"type":"item.completed","item":{"type":"agent_message","text":"{\\"status\\":\\"DONE\\"}"}}'
+          ].join('\n');
+          error.stderr = 'deadline exceeded';
+          throw error;
+        },
+        stateStore: {
+          loadRequired: async () => null,
+          save: async (cwd, taskId, state) => saves.push({ cwd, taskId, state })
+        }
+      }),
+    /implementer-result|summary|files_changed|tests|concerns/i
+  );
+
+  assert.equal(saves[0].state.sessionId, 'thread-123');
 });
 
 test('loadRequiredTaskState explains how to recover from missing state', async () => {

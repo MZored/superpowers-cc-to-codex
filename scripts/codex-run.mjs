@@ -4,6 +4,7 @@ import { detectCodexRuntime } from './detect-codex.mjs';
 import { loadRequiredTaskState, saveTaskState } from './lib/codex-state.mjs';
 import { runCommand } from './lib/run-command.mjs';
 import { buildStructuredReviewPrompt } from './lib/review-scope.mjs';
+import { parseCodexJsonl, validateImplementerResult } from './lib/codex-jsonl.mjs';
 
 const SUPPORTED_MODES = new Set(['research', 'plan', 'implement', 'review', 'resume']);
 
@@ -171,22 +172,7 @@ export function composePromptText(template, taskText) {
 }
 
 export function extractThreadId(jsonl) {
-  for (const line of jsonl.split('\n')) {
-    if (!line.trim().startsWith('{')) {
-      continue;
-    }
-
-    try {
-      const event = JSON.parse(line);
-      if (event.type === 'thread.started') {
-        return event.thread_id ?? null;
-      }
-    } catch {
-      // Ignore malformed lines and keep scanning.
-    }
-  }
-
-  return null;
+  return parseCodexJsonl(jsonl).threadId;
 }
 
 function stripFastServiceTier(command) {
@@ -228,12 +214,12 @@ export async function buildPrompt(invocation) {
   });
 }
 
-async function executeCommand(command, cwd, prompt) {
+async function executeCommand(command, cwd, prompt, { signal, onSpawn } = {}) {
   const args = prompt ? [...command.slice(1), prompt] : command.slice(1);
-  return runCommand(command[0], args, { cwd });
+  return runCommand(command[0], args, { cwd, signal, onSpawn });
 }
 
-async function runInvocation(invocation) {
+async function runInvocation(invocation, { signal, onSpawn } = {}) {
   if (invocation.dryRun) {
     return { stdout: JSON.stringify(invocation, null, 2), stderr: '' };
   }
@@ -241,15 +227,117 @@ async function runInvocation(invocation) {
   const prompt = await buildPrompt(invocation);
 
   try {
-    return await executeCommand(invocation.command, invocation.cwd, prompt);
+    return await executeCommand(invocation.command, invocation.cwd, prompt, { signal, onSpawn });
   } catch (error) {
     const output = `${error.stderr ?? ''}\n${error.stdout ?? ''}`;
     if (invocation.serviceTier === 'fast' && /service_tier|fast/i.test(output)) {
-      return executeCommand(stripFastServiceTier(invocation.command), invocation.cwd, prompt);
+      return executeCommand(stripFastServiceTier(invocation.command), invocation.cwd, prompt, { signal, onSpawn });
     }
 
     throw error;
   }
+}
+
+export async function runCodexWorkflow({
+  mode,
+  cwd,
+  taskId,
+  model,
+  effort,
+  serviceTier,
+  schemaPath,
+  promptFile,
+  base,
+  commit,
+  uncommitted = false,
+  sessionId,
+  taskText,
+  signal,
+  onSpawn,
+  dryRun = false,
+  runtimeDetector = detectCodexRuntime,
+  executor = runInvocation,
+  stateStore = { loadRequired: loadRequiredTaskState, save: saveTaskState }
+}) {
+  const runtime = await runtimeDetector();
+
+  const savedState =
+    mode === 'resume' && taskId && !sessionId
+      ? await stateStore.loadRequired(cwd, taskId)
+      : null;
+
+  const resolvedSessionId = sessionId ?? savedState?.sessionId;
+
+  const invocation = buildInvocation({
+    mode,
+    cwd,
+    taskId,
+    model,
+    effort,
+    serviceTier,
+    authProvider: runtime.authProvider,
+    schemaPath,
+    promptFile,
+    base,
+    commit,
+    uncommitted,
+    sessionId: resolvedSessionId,
+    taskText,
+    dryRun
+  });
+
+  let execution;
+
+  try {
+    execution = await executor(invocation, { signal, onSpawn });
+  } catch (error) {
+    // Salvage: attempt to extract partial state from error output
+    const rawStdout = error.stdout ?? '';
+    const parsed = parseCodexJsonl(rawStdout);
+
+    if (parsed.threadId && taskId) {
+      await stateStore.save(cwd, taskId, {
+        taskId,
+        role: mode,
+        phase: mode,
+        cwd,
+        sessionId: parsed.threadId
+      });
+    }
+
+    // For resume mode, validate the result even on failure (before re-throwing)
+    if (mode === 'resume' && schemaPath && parsed.result) {
+      validateImplementerResult(parsed.result);
+    }
+
+    throw error;
+  }
+
+  const parsed = parseCodexJsonl(execution.stdout ?? '');
+
+  // For resume mode, validate the structured result
+  if (mode === 'resume' && schemaPath && parsed.result) {
+    validateImplementerResult(parsed.result);
+  }
+
+  const effectiveSessionId = parsed.threadId ?? invocation.sessionId ?? null;
+
+  if (effectiveSessionId && taskId) {
+    await stateStore.save(cwd, taskId, {
+      taskId,
+      role: mode,
+      phase: mode,
+      cwd,
+      sessionId: effectiveSessionId
+    });
+  }
+
+  return {
+    ...execution,
+    sessionId: effectiveSessionId,
+    assistantText: parsed.assistantText,
+    result: parsed.result
+  };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
@@ -276,41 +364,23 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   // Validate early to fail before any async I/O (buildInvocation also validates).
   assertSupportedMode(mode);
   const cwd = values.cwd ?? process.cwd();
-  const runtime = await detectCodexRuntime();
-  const savedState =
-    mode === 'resume' && values.taskId && !values.sessionId
-      ? await loadRequiredTaskState(cwd, values.taskId)
-      : null;
-  const invocation = buildInvocation({
+
+  const output = await runCodexWorkflow({
     mode,
     cwd,
     taskId: values.taskId,
     model: values.model,
     effort: values.effort,
     serviceTier: values.serviceTier,
-    authProvider: runtime.authProvider,
     schemaPath: values.schema,
     promptFile: values.promptFile,
     base: values.base,
     commit: values.commit,
     uncommitted: values.uncommitted ?? false,
-    sessionId: values.sessionId ?? savedState?.sessionId,
+    sessionId: values.sessionId,
     taskText,
     dryRun: values.dryRun ?? false
   });
 
-  const result = await runInvocation(invocation);
-  const threadId = extractThreadId(result.stdout);
-
-  if (threadId && values.taskId) {
-    await saveTaskState(cwd, values.taskId, {
-      taskId: values.taskId,
-      role: mode,
-      phase: mode,
-      cwd,
-      sessionId: threadId
-    });
-  }
-
-  process.stdout.write(result.stdout);
+  process.stdout.write(output.stdout);
 }
