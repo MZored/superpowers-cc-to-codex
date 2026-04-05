@@ -128,3 +128,99 @@ test('every tool request resolves to existing promptFile and schemaPath on disk'
     }
   }
 });
+
+// ---------------------------------------------------------------------------
+// Resolution chain: args > projectConfig > tool defaults
+// ---------------------------------------------------------------------------
+
+test('buildWorkflowRequest: explicit args override projectConfig and defaults', () => {
+  const tool = getToolDefinition('codex_implement');
+  const request = buildWorkflowRequest({
+    tool,
+    args: { prompt: 'x', model: 'custom-model', effort: 'high', serviceTier: 'fast' },
+    cwd: '/repo',
+    pluginRoot: PLUGIN_ROOT,
+    projectConfig: { model: 'config-model', effort: 'low', serviceTier: undefined }
+  });
+
+  assert.equal(request.model, 'custom-model');
+  assert.equal(request.effort, 'high');
+  assert.equal(request.serviceTier, 'fast');
+});
+
+test('buildWorkflowRequest: projectConfig overrides tool defaults', () => {
+  const tool = getToolDefinition('codex_implement');
+  const request = buildWorkflowRequest({
+    tool,
+    args: { prompt: 'x' },
+    cwd: '/repo',
+    pluginRoot: PLUGIN_ROOT,
+    projectConfig: { model: 'config-model', effort: 'high', serviceTier: 'fast' }
+  });
+
+  assert.equal(request.model, 'config-model');
+  assert.equal(request.effort, 'high');
+  assert.equal(request.serviceTier, 'fast');
+});
+
+test('buildWorkflowRequest: tool defaults used when no args or config', () => {
+  const tool = getToolDefinition('codex_implement');
+  const request = buildWorkflowRequest({
+    tool,
+    args: { prompt: 'x' },
+    cwd: '/repo',
+    pluginRoot: PLUGIN_ROOT,
+    projectConfig: {}
+  });
+
+  assert.equal(request.model, tool.defaults.model);
+  assert.equal(request.effort, tool.defaults.effort);
+  assert.equal(request.serviceTier, undefined);
+});
+
+test('buildWorkflowRequest: mini tools use projectConfig.modelMini', () => {
+  const miniTools = ['codex_research', 'codex_plan', 'codex_debug', 'codex_branch_analysis'];
+  for (const name of miniTools) {
+    const tool = getToolDefinition(name);
+    const request = buildWorkflowRequest({
+      tool,
+      args: { prompt: 'x' },
+      cwd: '/repo',
+      pluginRoot: PLUGIN_ROOT,
+      projectConfig: { model: 'full-model', modelMini: 'mini-model' }
+    });
+    assert.equal(request.model, 'mini-model', `${name} should use modelMini from config`);
+  }
+});
+
+test('buildWorkflowRequest: full tools use projectConfig.model (not modelMini)', () => {
+  const fullToolArgs = [
+    { name: 'codex_implement', args: { prompt: 'x' } },
+    { name: 'codex_review', args: { prompt: 'x', reviewStyle: 'advisory', scope: { kind: 'uncommitted' } } },
+    { name: 'codex_resume', args: { prompt: 'x', sessionId: 's', taskId: 't' } }
+  ];
+  for (const { name, args } of fullToolArgs) {
+    const tool = getToolDefinition(name);
+    const request = buildWorkflowRequest({
+      tool,
+      args,
+      cwd: '/repo',
+      pluginRoot: PLUGIN_ROOT,
+      projectConfig: { model: 'full-model', modelMini: 'mini-model' }
+    });
+    assert.equal(request.model, 'full-model', `${name} should use model from config, not modelMini`);
+  }
+});
+
+test('buildWorkflowRequest: works without projectConfig (backward compat)', () => {
+  const tool = getToolDefinition('codex_research');
+  const request = buildWorkflowRequest({
+    tool,
+    args: { prompt: 'x' },
+    cwd: '/repo',
+    pluginRoot: PLUGIN_ROOT
+  });
+
+  assert.equal(request.model, tool.defaults.model);
+  assert.equal(request.effort, tool.defaults.effort);
+});

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codex Project Defaults",
+  "description": "Per-project configuration for Codex model, effort, and service tier defaults. Place at .claude/codex-defaults.json in your workspace root.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "model": {
+      "type": "string",
+      "description": "Default model for full-capability tools (implement, review, resume)."
+    },
+    "modelMini": {
+      "type": "string",
+      "description": "Default model for lightweight tools (research, plan, debug, branch analysis). Falls back to 'model' if not set."
+    },
+    "effort": {
+      "type": "string",
+      "enum": ["low", "medium", "high"],
+      "description": "Default reasoning effort level."
+    },
+    "serviceTier": {
+      "type": "string",
+      "enum": ["fast"],
+      "description": "Service tier. Set to 'fast' for GPT Fast mode (requires ChatGPT auth)."
+    }
+  }
+}

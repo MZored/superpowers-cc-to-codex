@@ -32,6 +32,7 @@ import {
   getToolDefinition
 } from './lib/mcp-tool-definitions.mjs';
 import { selectWorkspaceRoot } from './lib/mcp-workspace.mjs';
+import { loadProjectConfig } from './lib/codex-project-config.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -129,12 +130,16 @@ export function createToolCallHandler({
       return buildErrorResult(name, error, taskId);
     }
 
+    // Load per-project config (model, effort, serviceTier overrides)
+    const projectConfig = await loadProjectConfig(cwd);
+
     // Build workflow request
     const workflowRequest = buildWorkflowRequest({
       tool,
       args,
       cwd,
-      pluginRoot
+      pluginRoot,
+      projectConfig
     });
 
     // Track this request so notifications/cancelled can abort it.

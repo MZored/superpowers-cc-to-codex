@@ -185,22 +185,33 @@ export function getToolDefinition(name) {
   return TOOL_DEFINITIONS.find((tool) => tool.name === name) ?? null;
 }
 
+/** Mini-model tool names — use `projectConfig.modelMini` when available. */
+const MINI_MODEL_TOOLS = new Set([
+  'codex_research', 'codex_plan', 'codex_debug', 'codex_branch_analysis'
+]);
+
 /**
  * Maps typed MCP tool arguments to a `runCodexWorkflow` request object.
+ *
+ * Resolution chain (left wins): explicit args → projectConfig → tool defaults.
  *
  * Note: `timeoutMs` and `includeRawOutput` are runtime concerns consumed by
  * `runWithMcpRuntime`, not forwarded into the workflow request object.
  * Task 4's MCP server extracts them from `args` directly before calling
  * `runWithMcpRuntime`.
  */
-export function buildWorkflowRequest({ tool, args, cwd, pluginRoot }) {
+export function buildWorkflowRequest({ tool, args, cwd, pluginRoot, projectConfig = {} }) {
+  const configModel = MINI_MODEL_TOOLS.has(tool.name)
+    ? (projectConfig.modelMini ?? projectConfig.model)
+    : projectConfig.model;
+
   const request = {
     mode: tool.defaults.mode,
     cwd,
     taskId: args.taskId,
-    model: args.model ?? tool.defaults.model,
-    effort: args.effort ?? tool.defaults.effort,
-    serviceTier: args.serviceTier,
+    model: args.model ?? configModel ?? tool.defaults.model,
+    effort: args.effort ?? projectConfig.effort ?? tool.defaults.effort,
+    serviceTier: args.serviceTier ?? projectConfig.serviceTier,
     taskText: args.prompt
   };
 

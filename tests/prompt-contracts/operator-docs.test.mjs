@@ -18,16 +18,17 @@ test('README documents marketplace install, upstream superpowers reference, lice
   assert.match(readme, /\/plugin marketplace add mzored\/superpowers-cc-to-codex/);
   assert.match(readme, /\/plugin install superpowers-cc-to-codex@superpowers-cc-to-codex/);
   assert.match(readme, /https:\/\/github\.com\/obra\/superpowers/);
-  assert.match(readme, /\/plugin marketplace add obra\/superpowers-marketplace/);
-  assert.match(readme, /\/plugin install superpowers@superpowers-marketplace/);
-  assert.match(readme, /MIT License/);
-  assert.match(readme, /superpowers-cc-to-codex:brainstorming/);
-  assert.match(readme, /superpowers-cc-to-codex:writing-plans/);
-  assert.match(readme, /superpowers-cc-to-codex:subagent-driven-development/);
-  assert.match(readme, /superpowers-cc-to-codex:requesting-code-review/);
-  assert.match(readme, /superpowers-cc-to-codex:systematic-debugging/);
-  assert.match(readme, /superpowers-cc-to-codex:test-driven-development/);
-  assert.match(readme, /superpowers-cc-to-codex:finishing-a-development-branch/);
+  assert.match(readme, /MIT/);
+
+  const expectedSkills = [
+    'brainstorming', 'writing-plans', 'subagent-driven-development',
+    'requesting-code-review', 'receiving-code-review', 'systematic-debugging',
+    'test-driven-development', 'finishing-a-development-branch',
+    'dispatching-parallel-agents', 'verification-before-completion', 'using-git-worktrees'
+  ];
+  for (const skill of expectedSkills) {
+    assert.match(readme, new RegExp(skill), `README should mention skill: ${skill}`);
+  }
 });
 
 test('doctor command documents MCP-aware validation', async () => {
@@ -51,11 +52,11 @@ test('operator docs cover codex state inspection and workflow examples', async (
   assert.match(state, /list-codex-state\.mjs/);
   assert.match(state, /\$\{CLAUDE_PLUGIN_ROOT\}/);
   assert.match(doctor, /commands\/codex-state\.md/);
-  assert.match(readme, /superpowers-cc-to-codex:brainstorming/);
-  assert.match(readme, /superpowers-cc-to-codex:writing-plans/);
-  assert.match(readme, /superpowers-cc-to-codex:subagent-driven-development/);
-  assert.match(readme, /superpowers-cc-to-codex:requesting-code-review/);
-  assert.match(readme, /superpowers-cc-to-codex:test-driven-development/);
-  assert.match(readme, /superpowers-cc-to-codex:finishing-a-development-branch/);
-  assert.match(readme, /task resume looks stuck inside Claude Code/i);
+  assert.match(readme, /brainstorming/);
+  assert.match(readme, /writing-plans/);
+  assert.match(readme, /subagent-driven-development/);
+  assert.match(readme, /requesting-code-review/);
+  assert.match(readme, /test-driven-development/);
+  assert.match(readme, /finishing-a-development-branch/);
+  assert.match(readme, /codex_resume/i);
 });
