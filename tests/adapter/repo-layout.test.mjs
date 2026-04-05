@@ -31,6 +31,11 @@ test('package.json wires the maintainer scripts', async () => {
   assert.ok(pkg.scripts.doctor);
 });
 
+test('package test script includes the mcp-server unit suite', async () => {
+  const pkg = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8'));
+  assert.match(pkg.scripts.test, /tests\/mcp-server\/\*\.test\.mjs/);
+});
+
 test('plugin manifest registers the bundled MCP server', async () => {
   const plugin = await readJson('.claude-plugin/plugin.json');
   assert.equal(plugin.mcpServers.codex.command, 'node');
