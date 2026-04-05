@@ -39,7 +39,7 @@ test('package test script includes the mcp-server unit suite', async () => {
 test('plugin manifest registers the bundled MCP server', async () => {
   const plugin = await readJson('.claude-plugin/plugin.json');
   assert.equal(plugin.mcpServers.codex.command, 'node');
-  assert.match(plugin.mcpServers.codex.args[0], /scripts\/mcp-server\.mjs$/);
+  assert.match(plugin.mcpServers.codex.args[0], /scripts\/mcp-server-launcher\.mjs$/);
 });
 
 test('public repo does not track internal planning artifacts', async () => {

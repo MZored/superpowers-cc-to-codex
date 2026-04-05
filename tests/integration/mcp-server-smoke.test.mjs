@@ -2,7 +2,8 @@
  * mcp-server-smoke.test.mjs
  *
  * Integration smoke test for the stdio MCP server.
- * Spawns scripts/mcp-server.mjs as a child process via StdioClientTransport,
+ * Spawns scripts/mcp-server-launcher.mjs as a child process via
+ * StdioClientTransport,
  * performs the full initialize → initialized → tools/list handshake, and
  * verifies that all 7 workflow tools are advertised.
  *
@@ -23,7 +24,7 @@ test('sdk client can complete initialize + initialized and list tools', { timeou
 
   const transport = new StdioClientTransport({
     command: process.execPath,
-    args: ['scripts/mcp-server.mjs'],
+    args: ['scripts/mcp-server-launcher.mjs'],
     cwd: process.cwd()
   });
 
@@ -52,7 +53,7 @@ test('each listed tool has name, description, and inputSchema', { timeout: 15_00
 
   const transport = new StdioClientTransport({
     command: process.execPath,
-    args: ['scripts/mcp-server.mjs'],
+    args: ['scripts/mcp-server-launcher.mjs'],
     cwd: process.cwd()
   });
 
