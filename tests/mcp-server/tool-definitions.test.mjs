@@ -6,12 +6,37 @@ import {
   getToolDefinition
 } from '../../scripts/lib/mcp-tool-definitions.mjs';
 
-test('review tool schema rejects uncommitted structured review at the contract level', () => {
+test('review tool schema has no top-level oneOf/anyOf/allOf (Claude API restriction)', () => {
   const reviewTool = getToolDefinition('codex_review');
   assert.equal(reviewTool.inputSchema.additionalProperties, false);
-  assert.equal(Array.isArray(reviewTool.inputSchema.oneOf), true);
-  assert.match(JSON.stringify(reviewTool.inputSchema), /reviewStyle/);
+  assert.equal(reviewTool.inputSchema.oneOf, undefined);
+  assert.equal(reviewTool.inputSchema.anyOf, undefined);
+  assert.equal(reviewTool.inputSchema.allOf, undefined);
+  assert.ok(reviewTool.inputSchema.required.includes('reviewStyle'));
+  assert.ok(reviewTool.inputSchema.required.includes('scope'));
   assert.match(JSON.stringify(reviewTool.inputSchema), /uncommitted/);
+});
+
+test('no MCP tool schema uses top-level oneOf/anyOf/allOf', () => {
+  for (const tool of TOOL_DEFINITIONS) {
+    assert.equal(tool.inputSchema.oneOf, undefined, `${tool.name} has top-level oneOf`);
+    assert.equal(tool.inputSchema.anyOf, undefined, `${tool.name} has top-level anyOf`);
+    assert.equal(tool.inputSchema.allOf, undefined, `${tool.name} has top-level allOf`);
+  }
+});
+
+test('buildWorkflowRequest rejects structured review with uncommitted scope', () => {
+  const reviewTool = getToolDefinition('codex_review');
+  assert.throws(
+    () =>
+      buildWorkflowRequest({
+        tool: reviewTool,
+        args: { scope: { kind: 'uncommitted' }, reviewStyle: 'structured', prompt: 'x' },
+        cwd: '/repo',
+        pluginRoot: '/plugin'
+      }),
+    /structured reviews require a concrete scope/
+  );
 });
 
 test('read-only tools are annotated as readOnlyHint', () => {

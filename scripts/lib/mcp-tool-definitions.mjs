@@ -122,34 +122,7 @@ export const TOOL_DEFINITIONS = Object.freeze([
         },
         ...sharedProperties
       },
-      required: ['scope'],
-      oneOf: [
-        {
-          properties: {
-            reviewStyle: { const: 'structured' },
-            scope: {
-              oneOf: [
-                {
-                  type: 'object',
-                  properties: { kind: { const: 'base' }, base: { type: 'string' } },
-                  required: ['kind', 'base']
-                },
-                {
-                  type: 'object',
-                  properties: { kind: { const: 'commit' }, commit: { type: 'string' } },
-                  required: ['kind', 'commit']
-                }
-              ]
-            }
-          },
-          required: ['reviewStyle', 'scope']
-        },
-        {
-          properties: {
-            reviewStyle: { const: 'advisory' }
-          }
-        }
-      ]
+      required: ['scope', 'reviewStyle']
     },
     outputSchema: standardOutputSchema,
     defaults: { mode: 'review', promptTemplate: 'review-brief', model: 'gpt-5.4', effort: 'medium', timeoutMs: 180000 }
@@ -254,6 +227,11 @@ export function buildWorkflowRequest({ tool, args, cwd, pluginRoot }) {
         schemaPath: `${pluginRoot}/schemas/implementer-result.schema.json`
       };
     case 'codex_review':
+      if (args.reviewStyle === 'structured' && args.scope?.kind === 'uncommitted') {
+        throw new Error(
+          'codex_review: structured reviews require a concrete scope (kind "base" or "commit"); "uncommitted" is only valid for advisory reviews.'
+        );
+      }
       return {
         ...request,
         promptFile: `${pluginRoot}/skills/requesting-code-review/prompts/review-brief.md`,
