@@ -11,7 +11,7 @@ disable-model-invocation: true
 
 # Subagent-Driven Development
 
-Execute plan by dispatching `codex-implementer` per task via the Agent tool, with two-stage review after each: Claude-side spec compliance first, then `codex-reviewer` for code quality.
+Execute plan by calling `codex_implement` per task via the MCP tool, with two-stage review after each: Claude-side spec compliance first, then `codex_review` for code quality.
 
 **Core principle:** Codex implementer per task + two-stage review (spec then quality) = high quality, fast iteration
 
@@ -26,41 +26,55 @@ You MUST create a task for each plan task and complete them in order.
 
 **Per task:**
 
-3. **Dispatch implementer** — use the Agent tool with `subagent_type: "codex-implementer"`.
-   Pass the task as a `prompt` body in this exact shape:
-   ```text
-   Task ID: task-17
+3. **Dispatch implementer** — call the `codex_implement` MCP tool.
+   Pass the task description as the `prompt`:
 
-   Implement Task 3 from docs/superpowers/plans/2026-04-03-agent-forwarding.md.
-   Keep the work scoped to agents/codex-implementer.md and tests/prompt-contracts/execution-workflows.test.mjs.
-   Follow the implementation brief from skills/subagent-driven-development/prompts/implement-task.md.
-   ```
+```json
+{
+  "tool": "codex_implement",
+  "arguments": {
+    "taskId": "task-17",
+    "prompt": "Implement Task 3 from docs/superpowers/plans/2026-04-03-agent-forwarding.md. Keep the work scoped to agents/codex-implementer.md and tests/prompt-contracts/execution-workflows.test.mjs.",
+    "workspaceRoot": "/absolute/path/to/your/repo"
+  }
+}
+```
+
 4. **Handle status** — see Status Handling below
-5. **Spec compliance review** — Claude reads the actual code and verifies against spec using `spec-review-template.md`; if issues remain, resume the same implementer thread with:
-   ```text
-   Task ID: task-17
-   RESUME_SESSION: 019d4f82-58b8-72d3-9212-2e3d3fc69bcb
+5. **Spec compliance review** — Claude reads the actual code and verifies against spec using `spec-review-template.md`; if issues remain, resume the same implementer thread with `codex_resume`:
 
-   Fix these issues:
-   - The agent still lacks tools: Bash.
-   - The prompt-file override is ignored in the TDD path.
-   ```
-6. **Code quality review** — use the Agent tool with `subagent_type: "codex-reviewer"` only after spec compliance passes.
-   Pass this `prompt` body:
-   ```text
-   Task ID: task-17-review
-   REVIEW_TYPE: structured
-   BASE: origin/main
+```json
+{
+  "tool": "codex_resume",
+  "arguments": {
+    "taskId": "task-17",
+    "sessionId": "019d4f82-58b8-72d3-9212-2e3d3fc69bcb",
+    "prompt": "Fix these issues:\n- The agent still lacks tools: Bash.\n- The prompt-file override is ignored in the TDD path.",
+    "workspaceRoot": "/absolute/path/to/your/repo"
+  }
+}
+```
 
-   Review the implementation of Task 4 from docs/superpowers/plans/2026-04-03-agent-forwarding.md.
-   Focus on regressions, incorrect routing, and missing test coverage.
-   ```
+6. **Code quality review** — call `codex_review` only after spec compliance passes:
+
+```json
+{
+  "tool": "codex_review",
+  "arguments": {
+    "taskId": "task-17-review",
+    "reviewStyle": "structured",
+    "scope": { "kind": "base", "base": "origin/main" },
+    "prompt": "Review the implementation of Task 4 from docs/superpowers/plans/2026-04-03-agent-forwarding.md. Focus on regressions, incorrect routing, and missing test coverage.",
+    "workspaceRoot": "/absolute/path/to/your/repo"
+  }
+}
+```
+
 7. **Mark complete** — only after both gates pass
 
 **After all tasks:**
 
-8. **Final review** — use the Agent tool with `subagent_type: "codex-reviewer"` for the entire implementation.
-   Pass a fresh structured review prompt with a new task ID and the final base SHA.
+8. **Final review** — call `codex_review` for the entire implementation with a new task ID and the final base SHA.
 9. **Finish branch** — wrap up the development branch
 
 ## Status Handling
@@ -92,4 +106,4 @@ Handle the implementer's reported status:
 ## Integration
 
 - **superpowers-cc-to-codex:writing-plans** — creates the plan this skill executes
-- **superpowers-cc-to-codex:requesting-code-review** — code review via `codex-reviewer`
+- **superpowers-cc-to-codex:requesting-code-review** — code review via the `codex_review` MCP tool

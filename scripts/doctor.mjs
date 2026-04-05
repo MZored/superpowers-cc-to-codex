@@ -1,8 +1,12 @@
 import { execFile } from 'node:child_process';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { detectCodexRuntime } from './detect-codex.mjs';
+
+const PLUGIN_ROOT = fileURLToPath(new URL('..', import.meta.url));
+const MCP_SERVER_PATH = join(PLUGIN_ROOT, 'scripts', 'mcp-server.mjs');
 
 const execFileAsync = promisify(execFile);
 
@@ -33,7 +37,11 @@ await assertCommand('git', ['--version']);
 await assertCommand('node', ['--version']);
 await assertWritableStateDir(process.cwd());
 await assertCommand('node', ['scripts/check-codex-cli.mjs']);
-await assertCommand('claude', ['plugin', 'validate', '.']);
+await assertCommand('node', [
+  '-e',
+  `import(${JSON.stringify(MCP_SERVER_PATH)}).then(({ createMcpServer }) => createMcpServer())`
+]);
+await assertCommand('claude', ['plugin', 'validate', '.claude-plugin/plugin.json']);
 
 console.log(
   JSON.stringify(

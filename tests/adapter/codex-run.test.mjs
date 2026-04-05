@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { buildInvocation, extractThreadId, composePromptText, buildPrompt } from '../../scripts/codex-run.mjs';
+import { buildInvocation, extractThreadId, composePromptText, buildPrompt, runCodexWorkflow } from '../../scripts/codex-run.mjs';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -160,6 +160,76 @@ test('buildPrompt appends task text before structured review scope', async () =>
 
   assert.match(prompt, /## Your Task\n\nReview only the forwarding rewrite\./);
   assert.match(prompt, /## Diff Scope/);
+});
+
+test('runCodexWorkflow returns parsed output and persists thread state', async () => {
+  const saves = [];
+
+  const output = await runCodexWorkflow({
+    mode: 'implement',
+    cwd: '/repo',
+    taskId: 'task-17',
+    model: 'gpt-5.4',
+    effort: 'medium',
+    schemaPath: '/repo/schemas/implementer-result.schema.json',
+    promptFile: '/repo/tests/fixtures/codex/implement-prompt.md',
+    taskText: 'Implement the MCP server.',
+    runtimeDetector: async () => ({
+      installed: true,
+      authenticated: true,
+      authProvider: 'chatgpt',
+      version: 'codex-cli 0.111.0'
+    }),
+    executor: async () => ({
+      stdout: [
+        '{"type":"thread.started","thread_id":"thread-123"}',
+        '{"type":"item.completed","item":{"type":"agent_message","text":"{\\"status\\":\\"DONE\\"}"}}'
+      ].join('\n'),
+      stderr: '',
+      code: 0
+    }),
+    stateStore: {
+      loadRequired: async () => null,
+      save: async (cwd, taskId, state) => saves.push({ cwd, taskId, state })
+    }
+  });
+
+  assert.equal(output.sessionId, 'thread-123');
+  assert.deepEqual(output.result, { status: 'DONE' });
+  assert.equal(saves[0].taskId, 'task-17');
+  assert.equal(saves[0].state.sessionId, 'thread-123');
+});
+
+test('runCodexWorkflow forwards signal and onSpawn to the executor as execution options', async () => {
+  let capturedOptions;
+  const controller = new AbortController();
+  const onSpawn = (child) => child;
+
+  await runCodexWorkflow({
+    mode: 'implement',
+    cwd: '/repo',
+    taskId: 'task-sig',
+    taskText: 'test signal forwarding',
+    signal: controller.signal,
+    onSpawn,
+    runtimeDetector: async () => ({
+      installed: true,
+      authenticated: true,
+      authProvider: 'chatgpt',
+      version: 'codex-cli 0.111.0'
+    }),
+    executor: async (invocation, options) => {
+      capturedOptions = options;
+      return { stdout: '', stderr: '', code: 0 };
+    },
+    stateStore: {
+      loadRequired: async () => null,
+      save: async () => {}
+    }
+  });
+
+  assert.equal(capturedOptions.signal, controller.signal);
+  assert.equal(capturedOptions.onSpawn, onSpawn);
 });
 
 test('dry-run CLI preserves positional task text on the invocation object', async () => {

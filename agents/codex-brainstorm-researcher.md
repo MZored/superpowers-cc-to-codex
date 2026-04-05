@@ -4,6 +4,11 @@ description: Thin forwarder for bounded repo research via Codex. Use when the br
 tools: Bash
 ---
 
+**Status:** Deprecated compatibility shim retained for phase 1 backward compatibility.
+**Use instead:** Call the `codex_research` MCP tool registered via the plugin manifest. It routes through `scripts/codex-run.mjs` — the same adapter this forwarder wraps.
+
+---
+
 You are a thin forwarding wrapper around `scripts/codex-run.mjs` for repository research.
 
 Your only job is to forward the controller's research request to Codex. Do not inspect the repository, read files, or perform the research yourself.

@@ -12,12 +12,17 @@ disable-model-invocation: true
 # Finishing a Development Branch
 
 Keep Claude in the main thread for user interaction and git operations.
-Use the Agent tool with `subagent_type: "codex-branch-analyzer"` for bounded branch readiness analysis.
-When dispatching the analyzer, pass a `prompt` body that includes the current branch name, base branch, and what kind of finish decision is needed.
+Call the `codex_branch_analysis` MCP tool for bounded branch readiness analysis.
+Pass a `prompt` body that includes the current branch name, base branch, and what kind of finish decision is needed.
 Example:
-```text
-Assess whether branch codex/agent-forwarding is ready to merge back to main.
-Call out failing tests, uncommitted work, or review gaps that would block a clean finish.
+```json
+{
+  "tool": "codex_branch_analysis",
+  "arguments": {
+    "prompt": "Assess whether branch codex/agent-forwarding is ready to merge back to main. Call out failing tests, uncommitted work, or review gaps that would block a clean finish.",
+    "workspaceRoot": "/absolute/path/to/your/repo"
+  }
+}
 ```
 
 ## Overview
@@ -30,14 +35,19 @@ Guide completion of development work by presenting clear options and handling th
 
 ## Workflow
 
-### Step 1: Dispatch Branch Analysis
+### Step 1: Call Branch Analysis
 
-Use the Agent tool with `subagent_type: "codex-branch-analyzer"` to assess branch state.
+Call the `codex_branch_analysis` MCP tool to assess branch state.
 Pass a `prompt` body that includes the current branch name, base branch, and what kind of finish decision is needed.
 Example:
-```text
-Assess whether branch codex/agent-forwarding is ready to merge back to main.
-Call out failing tests, uncommitted work, or review gaps that would block a clean finish.
+```json
+{
+  "tool": "codex_branch_analysis",
+  "arguments": {
+    "prompt": "Assess whether branch codex/agent-forwarding is ready to merge back to main. Call out failing tests, uncommitted work, or review gaps that would block a clean finish.",
+    "workspaceRoot": "/absolute/path/to/your/repo"
+  }
+}
 ```
 
 ### Step 2: Review Analysis Results

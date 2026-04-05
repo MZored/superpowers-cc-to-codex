@@ -12,7 +12,7 @@ disable-model-invocation: true
 # Test-Driven Development
 
 Keep Claude in the main thread for user interaction and task acceptance.
-Use the Agent tool with `subagent_type: "codex-implementer"` with `PROMPT_FILE: test-driven-development/prompts/tdd-implement-task.md` for TDD-disciplined implementation.
+Call the `codex_implement` MCP tool with `promptTemplate: "tdd"` for TDD-disciplined implementation. Use `codex_resume` for fix loops if TDD discipline is violated.
 Reference `testing-anti-patterns.md` when reviewing Codex output for testing quality.
 
 ## Overview
@@ -47,17 +47,23 @@ If Codex returns implementation without red-green evidence, reject it and resume
 
 If acceptance criteria are unclear, ask the user before dispatching.
 
-### Step 2: Dispatch Codex Implementer with TDD Prompt
+### Step 2: Call `codex_implement` with TDD Prompt Template
 
-Use the Agent tool with `subagent_type: "codex-implementer"` and pass this `prompt` body:
+Call the `codex_implement` MCP tool with `promptTemplate: "tdd"`:
 
-```text
-Task ID: task-17
-PROMPT_FILE: test-driven-development/prompts/tdd-implement-task.md
-
-Implement the requested behavior with strict red-green-refactor discipline.
-Write the failing test first, then the minimal production change, then refactor only if the tests still pass.
+```json
+{
+  "tool": "codex_implement",
+  "arguments": {
+    "taskId": "task-17",
+    "promptTemplate": "tdd",
+    "prompt": "Implement the requested behavior with strict red-green-refactor discipline. Write the failing test first, then the minimal production change, then refactor only if the tests still pass.",
+    "workspaceRoot": "/absolute/path/to/your/repo"
+  }
+}
 ```
+
+The `tdd` prompt template routes through `skills/test-driven-development/prompts/tdd-implement-task.md`.
 
 ### Step 3: Verify TDD Evidence in Results
 
@@ -79,17 +85,20 @@ When Codex returns, check:
 
 ### Step 5: Resume if TDD Violated
 
-If the `tests` array is empty or implementation lacks red-green evidence:
+If the `tests` array is empty or implementation lacks red-green evidence, call `codex_resume` with `promptTemplate: "tdd"`:
 
-```text
-Task ID: task-17
-RESUME_SESSION: <session-id-from-previous-run>
-PROMPT_FILE: test-driven-development/prompts/tdd-implement-task.md
-
-Fix the failing test: <describe what needs fixing>
+```json
+{
+  "tool": "codex_resume",
+  "arguments": {
+    "taskId": "task-17",
+    "sessionId": "<sessionId-from-previous-run>",
+    "promptTemplate": "tdd",
+    "prompt": "Tests must be written BEFORE implementation. Delete any production code written without a failing test. Start the red-green-refactor cycle from scratch. Fix the failing test: <describe what needs fixing>",
+    "workspaceRoot": "/absolute/path/to/your/repo"
+  }
+}
 ```
-
-Resume instruction: "Tests must be written BEFORE implementation. Delete any production code written without a failing test. Start the red-green-refactor cycle from scratch."
 
 ## Red Flags
 

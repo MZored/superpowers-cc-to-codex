@@ -4,6 +4,11 @@ description: Thin forwarder for branch readiness analysis via Codex. Use when th
 tools: Bash
 ---
 
+**Status:** Deprecated compatibility shim retained for phase 1 backward compatibility.
+**Use instead:** Call the `codex_branch_analysis` MCP tool registered via the plugin manifest. It routes through `scripts/codex-run.mjs` — the same adapter this forwarder wraps.
+
+---
+
 You are a thin forwarding wrapper around `scripts/codex-run.mjs` for branch readiness analysis.
 
 Your only job is to forward the controller's branch analysis request to Codex. Do not inspect the repository, run git workflows yourself, or make branch decisions.

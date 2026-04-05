@@ -11,9 +11,9 @@ disable-model-invocation: true
 
 # Requesting Code Review
 
-Use the Agent tool with `subagent_type: "codex-reviewer"` to catch issues before they cascade. The reviewer gets precisely crafted context for evaluation — never your session's history. This keeps the reviewer focused on the work product, not your thought process, and preserves your own context for continued work.
+Call the `codex_review` MCP tool to catch issues before they cascade. The reviewer gets precisely crafted context for evaluation — never your session's history. This keeps the reviewer focused on the work product, not your thought process, and preserves your own context for continued work.
 
-When dispatching the reviewer, pass a structured `prompt` body with headers matching the review type needed.
+Pass a structured `prompt` with the `scope` and `reviewStyle` fields matching the review type needed.
 
 **Core principle:** Review early, review often.
 
@@ -37,40 +37,64 @@ BASE_SHA=$(git rev-parse HEAD~1)  # or origin/main
 HEAD_SHA=$(git rev-parse HEAD)
 ```
 
-**2. Dispatch `codex-reviewer`:**
+**2. Call `codex_review`:**
 
-Use the Agent tool with `subagent_type: "codex-reviewer"`.
-Pass one of these `prompt` shapes:
+Use one of these call shapes:
 
-```text
-Task ID: task-17-review
-REVIEW_TYPE: structured
-BASE: origin/main
-
-Review Task 4 from docs/superpowers/plans/2026-04-03-agent-forwarding.md for correctness, regressions, and missing tests.
+Structured review (base diff — requires `base` or `commit` scope; not available for uncommitted):
+```json
+{
+  "tool": "codex_review",
+  "arguments": {
+    "taskId": "task-17-review",
+    "reviewStyle": "structured",
+    "scope": { "kind": "base", "base": "origin/main" },
+    "prompt": "Review Task 4 from docs/superpowers/plans/2026-04-03-agent-forwarding.md for correctness, regressions, and missing tests.",
+    "workspaceRoot": "/absolute/path/to/your/repo"
+  }
+}
 ```
 
-```text
-Task ID: task-17-advisory
-REVIEW_TYPE: advisory
-BASE: origin/main
-
-Give concise advisory feedback on the diff since origin/main.
+Advisory review (base diff):
+```json
+{
+  "tool": "codex_review",
+  "arguments": {
+    "taskId": "task-17-advisory",
+    "reviewStyle": "advisory",
+    "scope": { "kind": "base", "base": "origin/main" },
+    "prompt": "Give concise advisory feedback on the diff since origin/main.",
+    "workspaceRoot": "/absolute/path/to/your/repo"
+  }
+}
 ```
 
-```text
-Task ID: task-17-commit
-REVIEW_TYPE: commit
-COMMIT: abc1234
-
-Review only commit abc1234 for correctness and risk.
+Commit review:
+```json
+{
+  "tool": "codex_review",
+  "arguments": {
+    "taskId": "task-17-commit",
+    "reviewStyle": "advisory",
+    "scope": { "kind": "commit", "commit": "abc1234" },
+    "prompt": "Review only commit abc1234 for correctness and risk.",
+    "workspaceRoot": "/absolute/path/to/your/repo"
+  }
+}
 ```
 
-```text
-Task ID: task-17-uncommitted
-REVIEW_TYPE: uncommitted
-
-Review only the uncommitted worktree changes.
+Uncommitted changes (advisory only — structured review is not available for uncommitted scope):
+```json
+{
+  "tool": "codex_review",
+  "arguments": {
+    "taskId": "task-17-uncommitted",
+    "reviewStyle": "advisory",
+    "scope": { "kind": "uncommitted" },
+    "prompt": "Review only the uncommitted worktree changes.",
+    "workspaceRoot": "/absolute/path/to/your/repo"
+  }
+}
 ```
 
 **Provide:**
@@ -95,14 +119,22 @@ You: Let me request code review before proceeding.
 
 BASE_SHA=$(git log --oneline | grep "Task 1" | head -1 | awk '{print $1}')
 HEAD_SHA=$(git rev-parse HEAD)
+```
 
-[Dispatch codex-reviewer]
-  WHAT_WAS_IMPLEMENTED: Verification and repair functions for conversation index
-  PLAN_OR_REQUIREMENTS: Task 2 from docs/superpowers/plans/deployment-plan.md
-  BASE_SHA: a7981ec
-  HEAD_SHA: 3df7661
-  DESCRIPTION: Added verifyIndex() and repairIndex() with 4 issue types
+```json
+{
+  "tool": "codex_review",
+  "arguments": {
+    "taskId": "task-2-review",
+    "reviewStyle": "structured",
+    "scope": { "kind": "base", "base": "a7981ec" },
+    "prompt": "WHAT_WAS_IMPLEMENTED: Verification and repair functions for conversation index (verifyIndex() and repairIndex() with 4 issue types).\nPLAN_OR_REQUIREMENTS: Task 2 from docs/superpowers/plans/deployment-plan.md.\nBASE_SHA: a7981ec\nHEAD_SHA: 3df7661\nReview for correctness, regressions, and missing tests.",
+    "workspaceRoot": "/absolute/path/to/your/repo"
+  }
+}
+```
 
+```
 [Reviewer returns]:
   Strengths: Clean architecture, real tests
   Issues:

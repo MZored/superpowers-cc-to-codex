@@ -12,14 +12,19 @@ disable-model-invocation: true
 # Systematic Debugging
 
 Keep Claude in the main thread for user interaction and fix decisions.
-Use the Agent tool with `subagent_type: "codex-debug-investigator"` for bounded root cause investigation (Phases 1-3).
-When dispatching the investigator, pass a full `prompt` body with the reproduction steps, current evidence, recent changes, and the exact question Codex should answer.
+Call the `codex_debug` MCP tool for bounded root cause investigation (Phases 1-3).
+Pass a full `prompt` body with the reproduction steps, current evidence, recent changes, and the exact question Codex should answer.
 Example:
-```text
-Investigate why Codex-backed agents are still doing repository work locally instead of forwarding through the adapter.
-Include the current failure mode, relevant files, and the strongest root-cause hypothesis supported by code evidence.
+```json
+{
+  "tool": "codex_debug",
+  "arguments": {
+    "prompt": "Investigate why Codex-backed agents are still doing repository work locally instead of forwarding through the adapter. Include the current failure mode, relevant files, and the strongest root-cause hypothesis supported by code evidence.",
+    "workspaceRoot": "/absolute/path/to/your/repo"
+  }
+}
 ```
-Use `codex-implementer` for applying the fix (Phase 4) when Codex-backed implementation is needed.
+Call `codex_implement` (and `codex_resume` for fix loops) for applying the fix (Phase 4) when Codex-backed implementation is needed.
 
 ## Overview
 

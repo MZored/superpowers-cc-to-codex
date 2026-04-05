@@ -30,6 +30,19 @@ test('README documents marketplace install, upstream superpowers reference, lice
   assert.match(readme, /superpowers-cc-to-codex:finishing-a-development-branch/);
 });
 
+test('doctor command documents MCP-aware validation', async () => {
+  const doctor = await read('commands/doctor.md');
+  assert.match(doctor, /mcp-server\.mjs/);
+  assert.match(doctor, /claude plugin validate \.claude-plugin\/plugin\.json/);
+});
+
+test('architecture docs describe the MCP server instead of forwarder agents as the primary path', async () => {
+  const architecture = await read('docs/architecture.md');
+  assert.match(architecture, /MCP server/i);
+  assert.match(architecture, /codex-run\.mjs/);
+  assert.doesNotMatch(architecture, /forwarders handle research/i);
+});
+
 test('operator docs cover codex state inspection and workflow examples', async () => {
   const doctor = await read('commands/doctor.md');
   const state = await read('commands/codex-state.md');

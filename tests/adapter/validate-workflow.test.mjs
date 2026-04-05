@@ -29,3 +29,9 @@ test('validation workflow pins Claude Code to the locally verified version', asy
   assert.match(workflow, /CLAUDE_CODE_VERSION:\s*2\.1\.90/);
   assert.match(workflow, /@anthropic-ai\/claude-code@\$\{\{ env\.CLAUDE_CODE_VERSION \}\}/);
 });
+
+test('validation workflow installs dependencies and validates the plugin manifest directly', async () => {
+  const workflow = await read('.github/workflows/validate.yml');
+  assert.match(workflow, /^\s*- run: npm install$/m);
+  assert.match(workflow, /^\s*- run: claude plugin validate \.claude-plugin\/plugin\.json$/m);
+});

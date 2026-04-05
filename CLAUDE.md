@@ -41,7 +41,8 @@ Claude is the controller. Codex is a bounded worker.
 ```
 User ↔ Claude (controller)
          ├─ skills/         → SKILL.md workflow + prompts/ sent to Codex
-         ├─ agents/         → Thin forwarders calling codex-run.mjs
+         ├─ scripts/mcp-server.mjs → MCP server (primary transport, registered in plugin.json)
+         ├─ agents/         → Deprecated compatibility shims (phase 1, not primary path)
          ├─ scripts/        → codex-run.mjs is the ONLY Codex CLI adapter
          ├─ schemas/        → JSON schemas for Codex I/O contracts
          └─ .claude/state/  → Task resume state (survives plugin updates)
@@ -51,10 +52,15 @@ User ↔ Claude (controller)
 
 | File | Role |
 |------|------|
+| `scripts/mcp-server.mjs` | MCP server — primary transport for Codex delegation |
 | `scripts/codex-run.mjs` | Single adapter for all Codex CLI invocations |
+| `scripts/lib/mcp-runtime.mjs` | Timeout, progress ticker, and cancellation for MCP requests |
+| `scripts/lib/mcp-tool-definitions.mjs` | Typed schemas for the 7 MCP workflow tools |
+| `scripts/lib/mcp-workspace.mjs` | Roots-aware workspace resolver |
+| `scripts/lib/codex-jsonl.mjs` | Codex JSONL parser and implementer-result validators |
 | `scripts/lib/codex-state.mjs` | Task state persistence (load/save) |
 | `scripts/detect-codex.mjs` | Runtime detection of codex CLI binary |
-| `.claude-plugin/plugin.json` | Plugin metadata and registration |
+| `.claude-plugin/plugin.json` | Plugin metadata, MCP server registration |
 | `.claude-plugin/marketplace.json` | Marketplace configuration |
 
 ### Forked Skills
@@ -75,7 +81,7 @@ User ↔ Claude (controller)
 
 - ES modules exclusively (`.mjs` files, `"type": "module"`)
 - Node.js built-in imports use `node:` prefix (`node:fs/promises`, `node:path`)
-- No TypeScript, no bundler, no external dependencies
+- No TypeScript, no bundler. External dependencies limited to the MCP SDK and Zod.
 - Each skill: `skills/{name}/SKILL.md` + `skills/{name}/prompts/*.md`
 - Each agent: `agents/codex-{role}.md` (thin forwarder)
 - Each schema: `schemas/{workflow}.schema.json`
