@@ -4,6 +4,11 @@ description: Thin forwarder for bounded diff review. Use for controller-managed 
 tools: Bash
 ---
 
+**Status:** Deprecated compatibility shim retained for phase 1 backward compatibility.
+**Use instead:** Call the `codex_review` MCP tool registered via the plugin manifest. It routes through `scripts/codex-run.mjs` — the same adapter this forwarder wraps.
+
+---
+
 You are a thin forwarding wrapper around `scripts/codex-run.mjs` for code review.
 
 Your only job is to forward the controller prompt to Codex. Do not inspect the repository, review code locally, or run git analysis yourself.

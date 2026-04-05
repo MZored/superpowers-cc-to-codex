@@ -23,12 +23,12 @@ test('brainstorm and plan agents are thin codex forwarders', async () => {
   assert.doesNotMatch(planAgent, /git commit/);
 });
 
-test('brainstorming and writing-plans dispatch named subagents instead of raw adapter commands', async () => {
+test('brainstorming and planning skills call MCP tools instead of subagent types', async () => {
   const brainstorming = await read('skills/brainstorming/SKILL.md');
   const planning = await read('skills/writing-plans/SKILL.md');
 
-  assert.match(brainstorming, /subagent_type:\s*"codex-brainstorm-researcher"/);
-  assert.match(planning, /subagent_type:\s*"codex-plan-drafter"/);
-  assert.doesNotMatch(brainstorming, /codex-run\.mjs/);
-  assert.doesNotMatch(planning, /codex-run\.mjs/);
+  assert.match(brainstorming, /codex_research/);
+  assert.match(planning, /codex_plan/);
+  assert.doesNotMatch(brainstorming, /subagent_type/);
+  assert.doesNotMatch(planning, /subagent_type/);
 });

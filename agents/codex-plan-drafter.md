@@ -4,6 +4,11 @@ description: Thin forwarder for first-pass implementation plan drafting via Code
 tools: Bash
 ---
 
+**Status:** Deprecated compatibility shim retained for phase 1 backward compatibility.
+**Use instead:** Call the `codex_plan` MCP tool registered via the plugin manifest. It routes through `scripts/codex-run.mjs` — the same adapter this forwarder wraps.
+
+---
+
 You are a thin forwarding wrapper around `scripts/codex-run.mjs` for implementation planning.
 
 Your only job is to forward the controller's planning request to Codex. Do not inspect the repository, read files, or draft the plan yourself.

@@ -23,12 +23,14 @@ test('implementer and reviewer agents forward to the adapter without doing git w
   assert.doesNotMatch(reviewer, /git commit/);
 });
 
-test('TDD skill dispatches codex-implementer with TDD-specific prompt', async () => {
+test('TDD skill uses codex_implement MCP tool with TDD prompt template', async () => {
   const skill = await read('skills/test-driven-development/SKILL.md');
-  assert.match(skill, /subagent_type:\s*"codex-implementer"/);
+  assert.match(skill, /codex_implement/);
+  assert.match(skill, /promptTemplate:\s*"tdd"/);
   assert.match(skill, /tdd-implement-task\.md/);
   assert.match(skill, /red-green-refactor/i);
   assert.match(skill, /disable-model-invocation:\s*true/);
+  assert.doesNotMatch(skill, /subagent_type/);
 });
 
 test('TDD prompt enforces test-first discipline', async () => {
@@ -46,19 +48,19 @@ test('branch-analyzer agent forwards to the adapter in research mode', async () 
   assert.doesNotMatch(agent, /git push/);
 });
 
-test('debugging and branch-finish skills dispatch named research subagents', async () => {
+test('debugging and branch-finish skills use MCP tool calls instead of subagent types', async () => {
   const debugging = await read('skills/systematic-debugging/SKILL.md');
   const finishing = await read('skills/finishing-a-development-branch/SKILL.md');
 
-  assert.match(debugging, /subagent_type:\s*"codex-debug-investigator"/);
-  assert.match(finishing, /subagent_type:\s*"codex-branch-analyzer"/);
-  assert.doesNotMatch(debugging, /codex-run\.mjs/);
-  assert.doesNotMatch(finishing, /codex-run\.mjs/);
+  assert.match(debugging, /codex_debug/);
+  assert.match(finishing, /codex_branch_analysis/);
+  assert.doesNotMatch(debugging, /subagent_type/);
+  assert.doesNotMatch(finishing, /subagent_type/);
 });
 
 test('finishing-a-development-branch skill presents structured options', async () => {
   const skill = await read('skills/finishing-a-development-branch/SKILL.md');
-  assert.match(skill, /codex-branch-analyzer/);
+  assert.match(skill, /codex_branch_analysis/);
   assert.match(skill, /Merge back to/);
   assert.match(skill, /Pull Request/);
   assert.match(skill, /Keep the branch as-is/);
@@ -85,25 +87,17 @@ test('reviewer agent documents review headers and review-type routing', async ()
   assert.match(reviewer, /codex-run\.mjs.*review/);
 });
 
-test('review workflow docs dispatch codex-reviewer with structured headers', async () => {
-  const workflow = await read('skills/subagent-driven-development/SKILL.md');
-  const review = await read('skills/requesting-code-review/SKILL.md');
-
-  assert.match(workflow, /subagent_type:\s*"codex-reviewer"/);
-  assert.match(workflow, /REVIEW_TYPE:\s*structured/);
-  assert.match(review, /REVIEW_TYPE:\s*advisory/);
-  assert.match(review, /REVIEW_TYPE:\s*commit/);
-  assert.match(review, /REVIEW_TYPE:\s*uncommitted/);
-  assert.doesNotMatch(review, /codex-run\.mjs/);
-});
-
-test('execution skills dispatch codex-implementer with structured prompt headers', async () => {
+test('execution workflows preserve TDD, review style, and resume semantics with MCP calls', async () => {
   const workflow = await read('skills/subagent-driven-development/SKILL.md');
   const tdd = await read('skills/test-driven-development/SKILL.md');
+  const review = await read('skills/requesting-code-review/SKILL.md');
 
-  assert.match(workflow, /subagent_type:\s*"codex-implementer"/);
-  assert.match(workflow, /Task ID:\s*task-17/);
-  assert.match(workflow, /RESUME_SESSION:/);
-  assert.match(tdd, /PROMPT_FILE:\s*test-driven-development\/prompts\/tdd-implement-task\.md/);
-  assert.doesNotMatch(tdd, /codex-run\.mjs/);
+  assert.match(workflow, /codex_implement/);
+  assert.match(workflow, /codex_resume/);
+  assert.match(workflow, /codex_review/);
+  assert.match(tdd, /"promptTemplate":\s*"tdd"/);
+  assert.match(review, /"reviewStyle":\s*"advisory"/);
+  assert.match(review, /"kind":\s*"uncommitted"/);
+  assert.doesNotMatch(workflow, /subagent_type/);
+  assert.doesNotMatch(review, /subagent_type/);
 });

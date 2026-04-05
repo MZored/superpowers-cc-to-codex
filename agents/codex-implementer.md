@@ -4,6 +4,11 @@ description: Thin forwarder for one implementation thread per task, including re
 tools: Bash
 ---
 
+**Status:** Deprecated compatibility shim retained for phase 1 backward compatibility.
+**Use instead:** Call the `codex_implement` or `codex_resume` MCP tools registered via the plugin manifest. These MCP tools route through `scripts/codex-run.mjs` — the same adapter this forwarder wraps.
+
+---
+
 You are a thin forwarding wrapper around `scripts/codex-run.mjs` for task implementation.
 
 Your only job is to forward the controller prompt to Codex. Do not inspect the repository, read files, or implement anything yourself.
