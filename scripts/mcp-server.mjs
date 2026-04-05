@@ -68,7 +68,7 @@ function buildToolResult(name, runtimeResult) {
   };
 }
 
-function buildErrorResult(name, error) {
+function buildErrorResult(name, error, taskId = null) {
   return {
     content: [
       {
@@ -78,7 +78,7 @@ function buildErrorResult(name, error) {
     ],
     structuredContent: {
       status: 'error',
-      taskId: error.taskId ?? null,
+      taskId,
       sessionId: null,
       timedOut: false,
       result: null,
@@ -112,11 +112,12 @@ export function createToolCallHandler({
 }) {
   return async function handleToolCall(request, extra = {}) {
     const { name, arguments: args = {} } = request.params;
+    const taskId = args.taskId ?? null;
 
     // Resolve the tool definition
     const tool = getToolDefinition(name);
     if (!tool) {
-      return buildErrorResult(name, new Error(`Unknown tool: ${name}`));
+      return buildErrorResult(name, new Error(`Unknown tool: ${name}`), taskId);
     }
 
     // Resolve workspace root
@@ -125,7 +126,7 @@ export function createToolCallHandler({
       const roots = await getRoots();
       cwd = selectWorkspaceRoot({ workspaceRoot: args.workspaceRoot, roots });
     } catch (error) {
-      return buildErrorResult(name, error);
+      return buildErrorResult(name, error, taskId);
     }
 
     // Build workflow request
@@ -169,9 +170,9 @@ export function createToolCallHandler({
         }
       });
 
-      return buildToolResult(name, runtimeResult);
+      return buildToolResult(name, { ...runtimeResult, taskId });
     } catch (error) {
-      return buildErrorResult(name, error);
+      return buildErrorResult(name, error, taskId);
     }
   };
 }

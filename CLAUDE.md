@@ -54,6 +54,10 @@ User ↔ Claude (controller)
 |------|------|
 | `scripts/mcp-server.mjs` | MCP server — primary transport for Codex delegation |
 | `scripts/codex-run.mjs` | Single adapter for all Codex CLI invocations |
+| `scripts/lib/mcp-runtime.mjs` | Timeout, progress ticker, and cancellation for MCP requests |
+| `scripts/lib/mcp-tool-definitions.mjs` | Typed schemas for the 7 MCP workflow tools |
+| `scripts/lib/mcp-workspace.mjs` | Roots-aware workspace resolver |
+| `scripts/lib/codex-jsonl.mjs` | Codex JSONL parser and implementer-result validators |
 | `scripts/lib/codex-state.mjs` | Task state persistence (load/save) |
 | `scripts/detect-codex.mjs` | Runtime detection of codex CLI binary |
 | `.claude-plugin/plugin.json` | Plugin metadata, MCP server registration |

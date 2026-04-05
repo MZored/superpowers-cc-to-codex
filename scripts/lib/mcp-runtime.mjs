@@ -105,7 +105,17 @@ export async function runWithMcpRuntime({
     cleanup();
 
     const raw = executionResult?.stdout ?? '';
-    const parsed = parseCodexJsonl(raw);
+    // Prefer pre-parsed fields when the operation (e.g. runCodexWorkflow) has
+    // already parsed stdout; fall back to re-parsing for low-level callers
+    // that return raw {stdout, stderr} without enriched fields.
+    const hasPreParsed = executionResult && 'sessionId' in executionResult;
+    const parsed = hasPreParsed
+      ? {
+          threadId: executionResult.sessionId,
+          assistantText: executionResult.assistantText,
+          result: executionResult.result
+        }
+      : parseCodexJsonl(raw);
 
     return {
       status: 'ok',
@@ -113,8 +123,8 @@ export async function runWithMcpRuntime({
       sessionId: parsed.threadId ?? null,
       assistantText: parsed.assistantText ?? null,
       result: parsed.result ?? null,
-      stderrTail: executionResult?.stderr ?? '',
-      ...(includeRawOutput ? { rawOutput: truncateRawOutput(raw) } : {})
+      stderrTail: executionResult?.stderr ?? executionResult?.stderrTail ?? '',
+      ...(includeRawOutput ? { rawOutput: raw ? truncateRawOutput(raw) : null } : {})
     };
   } catch (error) {
     cleanup();

@@ -288,6 +288,46 @@ test('includeRawOutput defaults to false and leaves rawOutput null', async () =>
 });
 
 // ---------------------------------------------------------------------------
+// taskId round-trips from args into structuredContent
+// ---------------------------------------------------------------------------
+
+test('structuredContent.taskId echoes arguments.taskId on success', async () => {
+  const handleToolCall = makeHandler();
+
+  const result = await handleToolCall(
+    makeRequest('codex_implement', {
+      taskId: 'task-42',
+      prompt: 'implement task 42',
+      workspaceRoot: '/repo'
+    })
+  );
+
+  assert.equal(result.isError, false);
+  assert.equal(result.structuredContent.taskId, 'task-42');
+});
+
+test('structuredContent.taskId echoes arguments.taskId on error path', async () => {
+  const handleToolCall = createToolCallHandler({
+    pluginRoot: '/plugin',
+    getRoots: async () => [{ uri: 'file:///repo' }],
+    runWorkflow: async () => {
+      throw new Error('codex failed');
+    }
+  });
+
+  const result = await handleToolCall(
+    makeRequest('codex_implement', {
+      taskId: 'task-99',
+      prompt: 'implement task 99',
+      workspaceRoot: '/repo'
+    })
+  );
+
+  assert.equal(result.isError, true);
+  assert.equal(result.structuredContent.taskId, 'task-99');
+});
+
+// ---------------------------------------------------------------------------
 // progressToken threads into runWithMcpRuntime via request.params._meta
 // ---------------------------------------------------------------------------
 
