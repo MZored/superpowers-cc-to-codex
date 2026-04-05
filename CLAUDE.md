@@ -71,9 +71,13 @@ User ↔ Claude (controller)
 | `writing-plans` | Plan creation with Codex first-pass drafting | `codex_plan` |
 | `subagent-driven-development` | Task execution with implementer + reviewer | `codex_implement` + `codex_review` |
 | `requesting-code-review` | Structured or advisory diff review | `codex_review` |
+| `receiving-code-review` | External feedback reception with verification | `codex_review` (as feedback source) |
 | `systematic-debugging` | 4-phase debugging with root cause investigation | `codex_debug` |
 | `test-driven-development` | Strict TDD via Codex implementer with red-green-refactor prompt | `codex_implement` (`promptTemplate: "tdd"`) |
 | `finishing-a-development-branch` | Branch completion with Codex readiness analysis | `codex_branch_analysis` |
+| `dispatching-parallel-agents` | Parallel independent-domain dispatch | `codex_implement` (parallel calls) |
+| `verification-before-completion` | Claude-side evidence-before-claims gate | N/A — Claude-side only |
+| `using-git-worktrees` | Isolated git worktree setup with safety checks | N/A — Claude-side only |
 
 Skills resume existing Codex threads via `codex_resume`. The `agents/` directory
 holds deprecated thin forwarders kept for phase-1 backward compatibility only —
@@ -101,7 +105,8 @@ new work should invoke the MCP tools directly.
 
 - `SKILL.md` contains orchestration workflow (checklists for Claude)
 - `prompts/*.md` contains detailed execution guidance (sent to Codex agents)
-- Every skill must have a Codex agent, schema, and prompt — no behavioral-only skills
+- Workflow skills must have a Codex agent, schema, and prompt — no behavioral-only skills
+- **Exception:** pure Claude-side discipline/safety gates (no execution work to delegate) are exempt. The exemption must be declared in the skill's divergence header. Current exemptions: `verification-before-completion`, `using-git-worktrees`
 - `SKILL.md` files carry upstream sync headers with fork date
 
 ### Testing

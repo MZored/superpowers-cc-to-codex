@@ -5,7 +5,7 @@ description: Use when starting feature work that needs isolation from current wo
 <!--
 Upstream source: obra/superpowers skills/using-git-worktrees/SKILL.md
 Last synced: 2026-04-05
-Divergence: No Codex integration needed — pure Claude-side git operations; no behavioral changes from upstream
+Divergence: No Codex integration needed — pure Claude-side git operations; no behavioral changes from upstream. Also ships under upstream superpowers: namespace — disable upstream skill when this fork is active to avoid collision
 -->
 
 # Using Git Worktrees
@@ -194,4 +194,4 @@ Ready to implement <feature-name>
 - Any skill needing isolated workspace
 
 **Pairs with:**
-- **superpowers-cc-to-codex:finishing-a-development-branch** — cleanup after work complete
+- **finishing-a-development-branch** — cleanup after work complete

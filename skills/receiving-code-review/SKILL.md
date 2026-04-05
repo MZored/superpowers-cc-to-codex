@@ -63,6 +63,8 @@ You understand 1,2,3,6. Unclear on 4,5.
 
 ## Source-Specific Handling
 
+**Trust hierarchy:** your human partner > Codex review > external reviewers. Sources listed in descending trust order — higher-trust sources need less verification.
+
 ### From your human partner
 - **Trusted** - implement after understanding
 - **Still ask** if scope unclear

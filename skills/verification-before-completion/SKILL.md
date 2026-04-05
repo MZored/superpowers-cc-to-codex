@@ -5,7 +5,7 @@ description: Use when about to claim work is complete, fixed, or passing, before
 <!--
 Upstream source: obra/superpowers skills/verification-before-completion/SKILL.md
 Last synced: 2026-04-05
-Divergence: No Codex integration needed — pure Claude-side verification gate; no behavioral changes from upstream
+Divergence: No Codex integration needed — pure Claude-side verification gate; no behavioral changes from upstream. Also ships under upstream superpowers: namespace — disable upstream skill when this fork is active to avoid collision
 -->
 
 # Verification Before Completion

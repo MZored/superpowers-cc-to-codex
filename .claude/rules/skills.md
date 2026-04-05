@@ -25,6 +25,6 @@ Each skill directory contains:
 ## Anti-Patterns
 
 - Putting detailed execution guidance in SKILL.md instead of prompts/
-- Creating skills without a Codex agent, schema, and prompt
+- Creating workflow skills without a Codex agent, schema, and prompt (pure Claude-side discipline/safety gates are exempt — declare the exemption in the divergence header)
 - Skipping the design approval gate in brainstorming
 - Fixing symptoms without root cause investigation (systematic-debugging)

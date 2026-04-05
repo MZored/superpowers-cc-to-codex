@@ -105,11 +105,11 @@ Call multiple `codex_implement` tools in a single message so they run concurrent
 
 ### 4. Review and Integrate
 
-When all threads return:
+When all threads return, each response includes a `sessionId` — capture it for follow-up:
 - Read each summary
 - Verify fixes don't conflict (check for same-file edits)
 - Run full test suite
-- Use `codex_resume` if any thread needs follow-up
+- Use `codex_resume` with the returned `taskId` and `sessionId` if any thread needs follow-up
 
 ## Writing Good Prompts
 
