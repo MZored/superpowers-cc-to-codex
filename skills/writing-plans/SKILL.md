@@ -1,13 +1,13 @@
-<!--
-Upstream source: obra/superpowers skills/writing-plans/SKILL.md
-Last synced: 2026-04-03
-Divergence: Codex-backed plan drafter for first pass; Claude reviews and finalizes; plugin-local template refs
--->
 ---
 name: writing-plans
 description: Use when you have a spec or requirements for a multi-step task, before touching code. Codex-backed variant.
 disable-model-invocation: true
 ---
+<!--
+Upstream source: obra/superpowers skills/writing-plans/SKILL.md
+Last synced: 2026-04-03
+Divergence: Codex-backed plan drafter for first pass; Claude reviews and finalizes; plugin-local template refs
+-->
 
 # Writing Plans
 

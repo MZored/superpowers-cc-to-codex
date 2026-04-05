@@ -1,10 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { access } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 import {
   TOOL_DEFINITIONS,
   buildWorkflowRequest,
   getToolDefinition
 } from '../../scripts/lib/mcp-tool-definitions.mjs';
+
+const PLUGIN_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 test('review tool schema has no top-level oneOf/anyOf/allOf (Claude API restriction)', () => {
   const reviewTool = getToolDefinition('codex_review');
@@ -74,4 +79,52 @@ test('buildWorkflowRequest maps typed review and resume arguments to adapter fla
   assert.equal(reviewRequest.base, 'origin/main');
   assert.equal(reviewRequest.schemaPath, '/plugin/schemas/code-review.schema.json');
   assert.equal(resumeRequest.promptFile, '/plugin/skills/test-driven-development/prompts/tdd-implement-task.md');
+});
+
+test('every tool request resolves to existing promptFile and schemaPath on disk', async () => {
+  // Enumerate every branch of buildWorkflowRequest so both promptTemplate and
+  // scope/reviewStyle variants are exercised.
+  const invocations = [
+    { name: 'codex_research', args: { prompt: 'x' } },
+    { name: 'codex_plan', args: { prompt: 'x' } },
+    { name: 'codex_implement', args: { prompt: 'x' } },
+    { name: 'codex_implement', args: { prompt: 'x', promptTemplate: 'tdd' } },
+    {
+      name: 'codex_review',
+      args: { prompt: 'x', reviewStyle: 'structured', scope: { kind: 'base', base: 'main' } }
+    },
+    {
+      name: 'codex_review',
+      args: { prompt: 'x', reviewStyle: 'advisory', scope: { kind: 'uncommitted' } }
+    },
+    { name: 'codex_debug', args: { prompt: 'x' } },
+    { name: 'codex_branch_analysis', args: { prompt: 'x' } },
+    { name: 'codex_resume', args: { prompt: 'x', sessionId: 's', taskId: 't' } },
+    {
+      name: 'codex_resume',
+      args: { prompt: 'x', sessionId: 's', taskId: 't', promptTemplate: 'tdd' }
+    }
+  ];
+
+  for (const { name, args } of invocations) {
+    const tool = getToolDefinition(name);
+    const request = buildWorkflowRequest({
+      tool,
+      args,
+      cwd: '/repo',
+      pluginRoot: PLUGIN_ROOT
+    });
+
+    await assert.doesNotReject(
+      access(request.promptFile),
+      `${name}: promptFile missing on disk: ${request.promptFile}`
+    );
+
+    if (request.schemaPath) {
+      await assert.doesNotReject(
+        access(request.schemaPath),
+        `${name}: schemaPath missing on disk: ${request.schemaPath}`
+      );
+    }
+  }
 });

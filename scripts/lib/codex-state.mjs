@@ -1,5 +1,7 @@
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+
+const defaultFs = { mkdir, writeFile, rename };
 
 function stateDir(workspaceRoot) {
   return join(workspaceRoot, '.claude', 'state', 'codex');
@@ -9,9 +11,19 @@ function stateFile(workspaceRoot, taskId) {
   return join(stateDir(workspaceRoot), `${taskId}.json`);
 }
 
-export async function saveTaskState(workspaceRoot, taskId, state) {
-  await mkdir(stateDir(workspaceRoot), { recursive: true });
-  await writeFile(stateFile(workspaceRoot, taskId), JSON.stringify(state, null, 2) + '\n', 'utf8');
+/**
+ * Persist task state atomically.
+ *
+ * Writes to `<taskId>.json.tmp` then renames onto the final path. `rename` is
+ * atomic on POSIX, so readers see either the prior version or the new one —
+ * never a truncated/partial write. An `fs` override is accepted for testability.
+ */
+export async function saveTaskState(workspaceRoot, taskId, state, { fs = defaultFs } = {}) {
+  await fs.mkdir(stateDir(workspaceRoot), { recursive: true });
+  const target = stateFile(workspaceRoot, taskId);
+  const tempPath = `${target}.tmp`;
+  await fs.writeFile(tempPath, JSON.stringify(state, null, 2) + '\n', 'utf8');
+  await fs.rename(tempPath, target);
 }
 
 export async function loadOptionalTaskState(workspaceRoot, taskId) {

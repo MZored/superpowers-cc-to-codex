@@ -1,13 +1,13 @@
-<!--
-Upstream source: obra/superpowers skills/finishing-a-development-branch/SKILL.md
-Last synced: 2026-04-03
-Divergence: Codex-backed branch analysis via codex-branch-analyzer, explicit invocation only, plugin-local prompt/schema references
--->
 ---
 name: finishing-a-development-branch
 description: Complete development work with Codex-backed branch analysis and structured finish options. Use only when the user explicitly asks for the Codex-backed branch finishing workflow.
 disable-model-invocation: true
 ---
+<!--
+Upstream source: obra/superpowers skills/finishing-a-development-branch/SKILL.md
+Last synced: 2026-04-03
+Divergence: Codex-backed branch analysis via codex-branch-analyzer, explicit invocation only, plugin-local prompt/schema references
+-->
 
 # Finishing a Development Branch
 

@@ -1,13 +1,13 @@
-<!--
-Upstream source: obra/superpowers skills/brainstorming/SKILL.md
-Last synced: 2026-04-03
-Divergence: Codex-backed researcher for step 1; explicit invocation only; plugin-local prompt/template refs
--->
 ---
 name: brainstorming
 description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation. Codex-backed variant."
 disable-model-invocation: true
 ---
+<!--
+Upstream source: obra/superpowers skills/brainstorming/SKILL.md
+Last synced: 2026-04-03
+Divergence: Codex-backed researcher for step 1; explicit invocation only; plugin-local prompt/template refs
+-->
 
 # Brainstorming Ideas Into Designs
 

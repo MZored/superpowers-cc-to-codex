@@ -65,15 +65,19 @@ User ↔ Claude (controller)
 
 ### Forked Skills
 
-| Skill | Purpose | Agent |
-|-------|---------|-------|
-| `brainstorming` | Design exploration with bounded repo research | `codex-brainstorm-researcher` |
-| `writing-plans` | Plan creation with Codex first-pass drafting | `codex-plan-drafter` |
-| `subagent-driven-development` | Task execution with implementer + reviewer | `codex-implementer` |
-| `requesting-code-review` | Structured or advisory diff review | `codex-reviewer` |
-| `systematic-debugging` | 4-phase debugging with root cause investigation | `codex-debug-investigator` |
-| `test-driven-development` | Strict TDD via Codex implementer with red-green-refactor prompt | `codex-implementer` |
-| `finishing-a-development-branch` | Branch completion with Codex readiness analysis | `codex-branch-analyzer` |
+| Skill | Purpose | MCP Tool |
+|-------|---------|----------|
+| `brainstorming` | Design exploration with bounded repo research | `codex_research` |
+| `writing-plans` | Plan creation with Codex first-pass drafting | `codex_plan` |
+| `subagent-driven-development` | Task execution with implementer + reviewer | `codex_implement` + `codex_review` |
+| `requesting-code-review` | Structured or advisory diff review | `codex_review` |
+| `systematic-debugging` | 4-phase debugging with root cause investigation | `codex_debug` |
+| `test-driven-development` | Strict TDD via Codex implementer with red-green-refactor prompt | `codex_implement` (`promptTemplate: "tdd"`) |
+| `finishing-a-development-branch` | Branch completion with Codex readiness analysis | `codex_branch_analysis` |
+
+Skills resume existing Codex threads via `codex_resume`. The `agents/` directory
+holds deprecated thin forwarders kept for phase-1 backward compatibility only —
+new work should invoke the MCP tools directly.
 
 ## Conventions
 

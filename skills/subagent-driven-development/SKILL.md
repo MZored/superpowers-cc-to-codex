@@ -1,13 +1,13 @@
-<!--
-Upstream source: obra/superpowers skills/subagent-driven-development/SKILL.md
-Last synced: 2026-04-03
-Divergence: Codex-backed implementer/reviewer agents replace Claude subagents; adapter-managed resume flow
--->
 ---
 name: subagent-driven-development
 description: Execute an implementation plan by dispatching Codex-backed implementer and reviewer agents while Claude keeps spec-compliance control. Codex-backed variant.
 disable-model-invocation: true
 ---
+<!--
+Upstream source: obra/superpowers skills/subagent-driven-development/SKILL.md
+Last synced: 2026-04-03
+Divergence: Codex-backed implementer/reviewer agents replace Claude subagents; adapter-managed resume flow
+-->
 
 # Subagent-Driven Development
 

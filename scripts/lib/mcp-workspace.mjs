@@ -9,7 +9,9 @@ function normalizeRoot(input) {
   if (isAbsolute(input)) {
     return resolve(input);
   }
-  throw new Error('workspaceRoot must be an absolute path or file:// URI.');
+  throw new Error(
+    `workspaceRoot must be an absolute path or a file:// URI (e.g. "/Users/you/repo" or "file:///Users/you/repo"), got: "${input}".`
+  );
 }
 
 export function assertInsideRoot(rootPath, candidatePath) {

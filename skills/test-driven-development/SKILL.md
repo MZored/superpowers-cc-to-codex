@@ -1,13 +1,13 @@
-<!--
-Upstream source: obra/superpowers skills/test-driven-development/SKILL.md
-Last synced: 2026-04-03
-Divergence: Codex-backed implementation via codex-implementer with TDD-specific prompt, explicit invocation only, plugin-local prompt/schema references
--->
 ---
 name: test-driven-development
 description: Enforce strict test-driven development via Codex-backed implementation. Use only when the user explicitly asks for the Codex-backed TDD workflow.
 disable-model-invocation: true
 ---
+<!--
+Upstream source: obra/superpowers skills/test-driven-development/SKILL.md
+Last synced: 2026-04-03
+Divergence: Codex-backed implementation via codex-implementer with TDD-specific prompt, explicit invocation only, plugin-local prompt/schema references
+-->
 
 # Test-Driven Development
 

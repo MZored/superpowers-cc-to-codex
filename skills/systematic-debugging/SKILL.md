@@ -1,13 +1,13 @@
-<!--
-Upstream source: obra/superpowers skills/systematic-debugging/SKILL.md
-Last synced: 2026-04-03
-Divergence: Codex-backed investigator agent, explicit invocation only, plugin-local prompt/schema references
--->
 ---
 name: systematic-debugging
 description: Systematic 4-phase debugging with Codex-backed root cause investigation. Use only when the user explicitly asks for the Codex-backed debugging workflow.
 disable-model-invocation: true
 ---
+<!--
+Upstream source: obra/superpowers skills/systematic-debugging/SKILL.md
+Last synced: 2026-04-03
+Divergence: Codex-backed investigator agent, explicit invocation only, plugin-local prompt/schema references
+-->
 
 # Systematic Debugging
 

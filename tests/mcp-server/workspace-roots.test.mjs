@@ -51,3 +51,27 @@ test('assertInsideRoot rejects an absolute path outside the root', () => {
     /outside workspace root/
   );
 });
+
+test('selectWorkspaceRoot rejects relative paths with a helpful example', () => {
+  assert.throws(
+    () => selectWorkspaceRoot({ workspaceRoot: 'relative/path', roots: [] }),
+    (error) => {
+      assert.match(error.message, /workspaceRoot/);
+      assert.match(error.message, /absolute path/i);
+      assert.match(error.message, /file:\/\//);
+      // Error should include a concrete example to copy-paste.
+      assert.match(error.message, /file:\/\/\//);
+      return true;
+    }
+  );
+});
+
+test('selectWorkspaceRoot error names the offending value', () => {
+  assert.throws(
+    () => selectWorkspaceRoot({ workspaceRoot: './relative', roots: [] }),
+    (error) => {
+      assert.match(error.message, /\.\/relative/);
+      return true;
+    }
+  );
+});

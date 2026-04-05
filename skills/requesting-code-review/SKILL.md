@@ -1,13 +1,13 @@
-<!--
-Upstream source: obra/superpowers skills/requesting-code-review/SKILL.md
-Last synced: 2026-04-03
-Divergence: Codex-backed reviewer agent; adapter-managed review prompts; no upstream runtime dependency
--->
 ---
 name: requesting-code-review
 description: Request a high-signal Codex-backed review of a diff or task result. Use when completing tasks, implementing major features, or before merging. Codex-backed variant.
 disable-model-invocation: true
 ---
+<!--
+Upstream source: obra/superpowers skills/requesting-code-review/SKILL.md
+Last synced: 2026-04-03
+Divergence: Codex-backed reviewer agent; adapter-managed review prompts; no upstream runtime dependency
+-->
 
 # Requesting Code Review
 
