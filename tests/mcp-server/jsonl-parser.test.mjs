@@ -75,6 +75,28 @@ test('validateImplementerResult throws when array fields are not arrays', () => 
   }
 });
 
+test('validateImplementerResult throws when files_changed contains non-strings', () => {
+  const malformed = {
+    status: 'DONE',
+    summary: 'ok',
+    files_changed: [42, null],
+    tests: [],
+    concerns: []
+  };
+  assert.throws(() => validateImplementerResult(malformed), /files_changed must contain strings/);
+});
+
+test('validateImplementerResult throws when concerns contains non-strings', () => {
+  const malformed = {
+    status: 'DONE',
+    summary: 'ok',
+    files_changed: ['a.mjs'],
+    tests: [],
+    concerns: [{ text: 'not a string' }]
+  };
+  assert.throws(() => validateImplementerResult(malformed), /concerns must contain strings/);
+});
+
 test('validateImplementerResult returns the result unchanged when valid', () => {
   const valid = {
     status: 'DONE',

@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, access } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const ALLOWED_KEYS = ['model', 'modelMini', 'effort', 'serviceTier'];
@@ -49,4 +49,37 @@ export async function loadProjectConfig(workspaceRoot) {
   }
 
   return config;
+}
+
+const SCAFFOLD_DEFAULTS = {
+  model: 'gpt-5.4',
+  modelMini: 'gpt-5.4-mini',
+  effort: 'medium',
+  serviceTier: 'fast'
+};
+
+/**
+ * Create `.claude/codex-defaults.json` with sensible defaults if it doesn't exist.
+ * Returns `true` when a new file was created, `false` otherwise.
+ *
+ * @param {string} workspaceRoot - Absolute path to the workspace root
+ * @returns {Promise<boolean>}
+ */
+export async function scaffoldProjectConfig(workspaceRoot) {
+  const configPath = join(workspaceRoot, '.claude', 'codex-defaults.json');
+
+  try {
+    await access(configPath);
+    return false; // already exists
+  } catch {
+    // file doesn't exist — proceed to create
+  }
+
+  try {
+    await mkdir(join(workspaceRoot, '.claude'), { recursive: true });
+    await writeFile(configPath, JSON.stringify(SCAFFOLD_DEFAULTS, null, 2) + '\n');
+    return true;
+  } catch {
+    return false; // non-critical — silently degrade
+  }
 }

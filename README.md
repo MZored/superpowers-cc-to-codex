@@ -47,7 +47,7 @@ Want the original Superpowers without Codex delegation? See [obra/superpowers](h
 
 ## Configuration
 
-Create `.claude/codex-defaults.json` in your project root to set default models and speed:
+`.claude/codex-defaults.json` is automatically created with sensible defaults on first use. Customize it:
 
 ```json
 {

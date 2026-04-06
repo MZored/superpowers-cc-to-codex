@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadTaskState, saveTaskState } from '../../scripts/lib/codex-state.mjs';
+import { loadTaskState, saveTaskState, listTaskStates } from '../../scripts/lib/codex-state.mjs';
 
 test('saveTaskState round-trips task metadata under .claude/state/codex', async () => {
   const root = await mkdtemp(join(tmpdir(), 'sp-codex-'));
@@ -91,6 +91,18 @@ test('saveTaskState preserves prior content if the write fails mid-save', async 
 
   const loaded = await loadTaskState(root, 'task-crash');
   assert.equal(loaded.phase, 'original', 'original state must survive a failed write');
+});
+
+test('listTaskStates skips malformed state files instead of crashing', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'sp-codex-malformed-'));
+  const stateDir = join(root, '.claude', 'state', 'codex');
+
+  await saveTaskState(root, 'good-task', { taskId: 'good-task', phase: 'implement' });
+  await writeFile(join(stateDir, 'corrupt-task.json'), '{ invalid json !!!', 'utf8');
+
+  const states = await listTaskStates(root);
+  assert.equal(states.length, 1, 'should return only the valid state');
+  assert.equal(states[0].taskId, 'good-task');
 });
 
 test('implementer schema requires the full controller contract', async () => {

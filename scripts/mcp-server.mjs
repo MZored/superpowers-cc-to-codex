@@ -32,7 +32,7 @@ import {
   getToolDefinition
 } from './lib/mcp-tool-definitions.mjs';
 import { selectWorkspaceRoot } from './lib/mcp-workspace.mjs';
-import { loadProjectConfig } from './lib/codex-project-config.mjs';
+import { loadProjectConfig, scaffoldProjectConfig } from './lib/codex-project-config.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -111,6 +111,8 @@ export function createToolCallHandler({
   server,
   requestRegistry = createRequestRegistry()
 }) {
+  const scaffoldedWorkspaces = new Set();
+
   return async function handleToolCall(request, extra = {}) {
     const { name, arguments: args = {} } = request.params;
     const taskId = args.taskId ?? null;
@@ -128,6 +130,12 @@ export function createToolCallHandler({
       cwd = selectWorkspaceRoot({ workspaceRoot: args.workspaceRoot, roots });
     } catch (error) {
       return buildErrorResult(name, error, taskId);
+    }
+
+    // Scaffold config on first tool call per workspace
+    if (!scaffoldedWorkspaces.has(cwd)) {
+      scaffoldedWorkspaces.add(cwd);
+      await scaffoldProjectConfig(cwd);
     }
 
     // Load per-project config (model, effort, serviceTier overrides)

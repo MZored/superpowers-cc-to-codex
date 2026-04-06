@@ -57,13 +57,16 @@ export async function listTaskStates(workspaceRoot) {
   await mkdir(dir, { recursive: true });
   const entries = await readdir(dir);
   const jsonFiles = entries.filter((name) => name.endsWith('.json')).sort();
-  const states = await Promise.all(
+  const results = await Promise.allSettled(
     jsonFiles.map((name) => {
       const taskId = name.slice(0, -5);
       return loadRequiredTaskState(workspaceRoot, taskId);
     })
   );
-  return states.sort((a, b) => a.taskId.localeCompare(b.taskId));
+  return results
+    .filter((r) => r.status === 'fulfilled')
+    .map((r) => r.value)
+    .sort((a, b) => a.taskId.localeCompare(b.taskId));
 }
 
 // Backward-compatible alias for loadRequiredTaskState.

@@ -58,5 +58,12 @@ export function validateImplementerResult(result) {
     throw new Error('implementer-result arrays are malformed.');
   }
 
+  if (!result.files_changed.every((f) => typeof f === 'string')) {
+    throw new Error('implementer-result: files_changed must contain strings.');
+  }
+  if (!result.concerns.every((c) => typeof c === 'string')) {
+    throw new Error('implementer-result: concerns must contain strings.');
+  }
+
   return result;
 }

@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadProjectConfig } from '../../scripts/lib/codex-project-config.mjs';
+import { readFile } from 'node:fs/promises';
+import { loadProjectConfig, scaffoldProjectConfig } from '../../scripts/lib/codex-project-config.mjs';
 
 test('loads valid config from .claude/codex-defaults.json', async () => {
   const root = await mkdtemp(join(tmpdir(), 'sp-config-'));
@@ -92,6 +93,52 @@ test('accepts all known config keys', async () => {
       serviceTier: 'fast'
     })
   );
+
+  const config = await loadProjectConfig(root);
+  assert.equal(config.model, 'gpt-5.4');
+  assert.equal(config.modelMini, 'gpt-5.4-mini');
+  assert.equal(config.effort, 'medium');
+  assert.equal(config.serviceTier, 'fast');
+});
+
+// --- scaffoldProjectConfig tests ---
+
+test('scaffolds config when file is missing', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'sp-config-'));
+  const result = await scaffoldProjectConfig(root);
+  assert.equal(result, true);
+
+  const content = JSON.parse(await readFile(join(root, '.claude', 'codex-defaults.json'), 'utf8'));
+  assert.equal(content.model, 'gpt-5.4');
+  assert.equal(content.modelMini, 'gpt-5.4-mini');
+  assert.equal(content.effort, 'medium');
+  assert.equal(content.serviceTier, 'fast');
+});
+
+test('scaffolds config and creates .claude directory when missing', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'sp-config-'));
+  await scaffoldProjectConfig(root);
+
+  const content = await readFile(join(root, '.claude', 'codex-defaults.json'), 'utf8');
+  assert.ok(content.length > 0, '.claude dir and file should be created');
+});
+
+test('does not overwrite existing config', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'sp-config-'));
+  await mkdir(join(root, '.claude'), { recursive: true });
+  const custom = JSON.stringify({ model: 'custom-model' });
+  await writeFile(join(root, '.claude', 'codex-defaults.json'), custom);
+
+  const result = await scaffoldProjectConfig(root);
+  assert.equal(result, false);
+
+  const content = await readFile(join(root, '.claude', 'codex-defaults.json'), 'utf8');
+  assert.equal(content, custom, 'existing file should not be overwritten');
+});
+
+test('scaffolded config round-trips through loadProjectConfig', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'sp-config-'));
+  await scaffoldProjectConfig(root);
 
   const config = await loadProjectConfig(root);
   assert.equal(config.model, 'gpt-5.4');
