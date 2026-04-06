@@ -1,5 +1,5 @@
 ---
-name: test-driven-development
+name: test-driven-development-codex
 description: Enforce strict test-driven development via Codex-backed implementation. Use only when the user explicitly asks for the Codex-backed TDD workflow.
 disable-model-invocation: true
 ---
@@ -14,6 +14,12 @@ Divergence: Codex-backed implementation via codex-implementer with TDD-specific 
 Keep Claude in the main thread for user interaction and task acceptance.
 Call the `codex_implement` MCP tool with `promptTemplate: "tdd"` for TDD-disciplined implementation. Use `codex_resume` for fix loops if TDD discipline is violated.
 Reference `testing-anti-patterns.md` when reviewing Codex output for testing quality.
+
+<HARD-GATE>
+You MUST call codex_implement with promptTemplate: "tdd" (Step 2).
+You cannot implement with TDD yourself. Codex enforces red-green-refactor discipline.
+No MCP call = cannot proceed.
+</HARD-GATE>
 
 ## Overview
 
@@ -63,7 +69,7 @@ Call the `codex_implement` MCP tool with `promptTemplate: "tdd"`:
 }
 ```
 
-The `tdd` prompt template routes through `skills/test-driven-development/prompts/tdd-implement-task.md`.
+The `tdd` prompt template routes through `skills/test-driven-development-codex/prompts/tdd-implement-task.md`.
 
 ### Step 3: Verify TDD Evidence in Results
 

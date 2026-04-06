@@ -7,7 +7,7 @@ async function read(relativePath) {
 }
 
 test('forked workflow entrypoints require explicit invocation', async () => {
-  for (const relativePath of ['skills/brainstorming/SKILL.md', 'skills/writing-plans/SKILL.md']) {
+  for (const relativePath of ['skills/brainstorming-codex/SKILL.md', 'skills/writing-plans-codex/SKILL.md']) {
     const body = await read(relativePath);
     assert.match(body, /disable-model-invocation:\s*true/);
     assert.match(body, /Upstream source: obra\/superpowers/);
@@ -24,8 +24,8 @@ test('brainstorm and plan agents are thin codex forwarders', async () => {
 });
 
 test('brainstorming and planning skills call MCP tools instead of subagent types', async () => {
-  const brainstorming = await read('skills/brainstorming/SKILL.md');
-  const planning = await read('skills/writing-plans/SKILL.md');
+  const brainstorming = await read('skills/brainstorming-codex/SKILL.md');
+  const planning = await read('skills/writing-plans-codex/SKILL.md');
 
   assert.match(brainstorming, /codex_research/);
   assert.match(planning, /codex_plan/);

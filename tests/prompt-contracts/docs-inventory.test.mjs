@@ -7,7 +7,7 @@ async function read(relativePath) {
 }
 
 test('plan template points at the local fork workflow names', async () => {
-  const template = await read('skills/writing-plans/plan-template.md');
+  const template = await read('skills/writing-plans-codex/plan-template.md');
   assert.match(template, /superpowers-cc-to-codex:subagent-driven-development/);
   assert.doesNotMatch(template, /superpowers:executing-plans/);
 });

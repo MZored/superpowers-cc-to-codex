@@ -4,7 +4,7 @@ import { compareForkToUpstream } from '../../scripts/check-upstream-superpowers.
 
 test('compareForkToUpstream reports drift against the upstream fixture', async () => {
   const report = await compareForkToUpstream({
-    forkPath: 'skills/brainstorming/SKILL.md',
+    forkPath: 'skills/brainstorming-codex/SKILL.md',
     upstreamPath: 'skills/brainstorming/SKILL.md',
     sourceDir: 'tests/fixtures/upstream-superpowers'
   });

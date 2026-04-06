@@ -31,7 +31,7 @@ export const TOOL_DEFINITIONS = Object.freeze([
   {
     name: 'codex_research',
     title: 'Codex Research',
-    description: 'Run read-only brainstorming research against one repository.',
+    description: 'Run bounded repository research for brainstorming. Call BEFORE asking design questions — pass the areas to explore in the prompt.',
     annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
@@ -48,7 +48,7 @@ export const TOOL_DEFINITIONS = Object.freeze([
   {
     name: 'codex_plan',
     title: 'Codex Plan',
-    description: 'Draft an implementation plan for a bounded task.',
+    description: 'Draft an implementation plan. Call to generate first-pass plan — you review and refine, not write from scratch.',
     annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
@@ -65,7 +65,7 @@ export const TOOL_DEFINITIONS = Object.freeze([
   {
     name: 'codex_implement',
     title: 'Codex Implement',
-    description: 'Implement a bounded task in the workspace.',
+    description: 'Implement a bounded coding task. Dispatch this for ALL implementation work — Claude orchestrates, Codex executes.',
     inputSchema: {
       type: 'object',
       additionalProperties: false,
@@ -82,7 +82,7 @@ export const TOOL_DEFINITIONS = Object.freeze([
   {
     name: 'codex_review',
     title: 'Codex Review',
-    description: 'Run structured or advisory review against a diff scope.',
+    description: 'Run external code review against a diff scope. Call for ALL review work — external review catches what self-review misses.',
     annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
@@ -130,7 +130,7 @@ export const TOOL_DEFINITIONS = Object.freeze([
   {
     name: 'codex_debug',
     title: 'Codex Debug',
-    description: 'Investigate root cause with read-only repository access.',
+    description: 'Investigate root cause of a bug or failure. Call BEFORE proposing any fix — pass error messages, repro steps, and evidence in the prompt.',
     annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
@@ -147,7 +147,7 @@ export const TOOL_DEFINITIONS = Object.freeze([
   {
     name: 'codex_branch_analysis',
     title: 'Codex Branch Analysis',
-    description: 'Assess branch readiness and recommend the next finish action.',
+    description: 'Assess branch readiness before finishing. Call BEFORE presenting finish options — analysis informs the decision.',
     annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
@@ -219,13 +219,13 @@ export function buildWorkflowRequest({ tool, args, cwd, pluginRoot, projectConfi
     case 'codex_research':
       return {
         ...request,
-        promptFile: `${pluginRoot}/skills/brainstorming/prompts/research-brief.md`,
+        promptFile: `${pluginRoot}/skills/brainstorming-codex/prompts/research-brief.md`,
         schemaPath: `${pluginRoot}/schemas/brainstorm-research.schema.json`
       };
     case 'codex_plan':
       return {
         ...request,
-        promptFile: `${pluginRoot}/skills/writing-plans/prompts/planning-brief.md`,
+        promptFile: `${pluginRoot}/skills/writing-plans-codex/prompts/planning-brief.md`,
         schemaPath: `${pluginRoot}/schemas/plan-draft.schema.json`
       };
     case 'codex_implement':
@@ -233,8 +233,8 @@ export function buildWorkflowRequest({ tool, args, cwd, pluginRoot, projectConfi
         ...request,
         promptFile:
           args.promptTemplate === 'tdd'
-            ? `${pluginRoot}/skills/test-driven-development/prompts/tdd-implement-task.md`
-            : `${pluginRoot}/skills/subagent-driven-development/prompts/implement-task.md`,
+            ? `${pluginRoot}/skills/test-driven-development-codex/prompts/tdd-implement-task.md`
+            : `${pluginRoot}/skills/subagent-driven-development-codex/prompts/implement-task.md`,
         schemaPath: `${pluginRoot}/schemas/implementer-result.schema.json`
       };
     case 'codex_review':
@@ -245,7 +245,7 @@ export function buildWorkflowRequest({ tool, args, cwd, pluginRoot, projectConfi
       }
       return {
         ...request,
-        promptFile: `${pluginRoot}/skills/requesting-code-review/prompts/review-brief.md`,
+        promptFile: `${pluginRoot}/skills/requesting-code-review-codex/prompts/review-brief.md`,
         base: args.scope?.kind === 'base' ? args.scope.base : undefined,
         commit: args.scope?.kind === 'commit' ? args.scope.commit : undefined,
         uncommitted: args.scope?.kind === 'uncommitted',
@@ -257,13 +257,13 @@ export function buildWorkflowRequest({ tool, args, cwd, pluginRoot, projectConfi
     case 'codex_debug':
       return {
         ...request,
-        promptFile: `${pluginRoot}/skills/systematic-debugging/prompts/investigation-brief.md`,
+        promptFile: `${pluginRoot}/skills/systematic-debugging-codex/prompts/investigation-brief.md`,
         schemaPath: `${pluginRoot}/schemas/debug-investigation.schema.json`
       };
     case 'codex_branch_analysis':
       return {
         ...request,
-        promptFile: `${pluginRoot}/skills/finishing-a-development-branch/prompts/branch-analysis-brief.md`,
+        promptFile: `${pluginRoot}/skills/finishing-a-development-branch-codex/prompts/branch-analysis-brief.md`,
         schemaPath: `${pluginRoot}/schemas/branch-analysis.schema.json`
       };
     case 'codex_resume':
@@ -272,8 +272,8 @@ export function buildWorkflowRequest({ tool, args, cwd, pluginRoot, projectConfi
         sessionId: args.sessionId,
         promptFile:
           args.promptTemplate === 'tdd'
-            ? `${pluginRoot}/skills/test-driven-development/prompts/tdd-implement-task.md`
-            : `${pluginRoot}/skills/subagent-driven-development/prompts/fix-task.md`,
+            ? `${pluginRoot}/skills/test-driven-development-codex/prompts/tdd-implement-task.md`
+            : `${pluginRoot}/skills/subagent-driven-development-codex/prompts/fix-task.md`,
         schemaPath: `${pluginRoot}/schemas/implementer-result.schema.json`
       };
     default:

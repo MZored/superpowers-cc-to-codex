@@ -1,5 +1,5 @@
 ---
-name: subagent-driven-development
+name: subagent-driven-development-codex
 description: Execute an implementation plan by dispatching Codex-backed implementer and reviewer agents while Claude keeps spec-compliance control. Codex-backed variant.
 disable-model-invocation: true
 ---
@@ -14,6 +14,12 @@ Divergence: Codex-backed implementer/reviewer agents replace Claude subagents; a
 Execute plan by calling `codex_implement` per task via the MCP tool, with two-stage review after each: Claude-side spec compliance first, then `codex_review` for code quality.
 
 **Core principle:** Codex implementer per task + two-stage review (spec then quality) = high quality, fast iteration
+
+<HARD-GATE>
+You MUST dispatch codex_implement for every plan task (Step 3).
+You cannot implement code yourself, even for simple tasks.
+Spec review requires seeing EXTERNAL implementation. No dispatch = no task completion.
+</HARD-GATE>
 
 ## Checklist
 
@@ -105,5 +111,5 @@ Handle the implementer's reported status:
 
 ## Integration
 
-- **superpowers-cc-to-codex:writing-plans** — creates the plan this skill executes
-- **superpowers-cc-to-codex:requesting-code-review** — code review via the `codex_review` MCP tool
+- **superpowers-cc-to-codex:writing-plans-codex** — creates the plan this skill executes
+- **superpowers-cc-to-codex:requesting-code-review-codex** — code review via the `codex_review` MCP tool

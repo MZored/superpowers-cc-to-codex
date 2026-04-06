@@ -24,7 +24,7 @@ test('runCodexWorkflow validates resume output and persists salvaged partial sta
         taskId: 'task-17',
         sessionId: 'thread-123',
         schemaPath: '/repo/schemas/implementer-result.schema.json',
-        promptFile: '/repo/skills/subagent-driven-development/prompts/fix-task.md',
+        promptFile: '/repo/skills/subagent-driven-development-codex/prompts/fix-task.md',
         runtimeDetector: async () => ({
           installed: true,
           authenticated: true,

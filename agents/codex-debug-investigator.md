@@ -26,7 +26,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-run.mjs" research \
   --model gpt-5.4-mini \
   --effort medium \
   --schema "${CLAUDE_PLUGIN_ROOT}/schemas/debug-investigation.schema.json" \
-  --promptFile "${CLAUDE_PLUGIN_ROOT}/skills/systematic-debugging/prompts/investigation-brief.md" \
+  --promptFile "${CLAUDE_PLUGIN_ROOT}/skills/systematic-debugging-codex/prompts/investigation-brief.md" \
   "$TASK_TEXT"
 ```
 

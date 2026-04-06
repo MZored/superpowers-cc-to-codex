@@ -2,20 +2,20 @@
   "repo": "obra/superpowers",
   "ref": "main",
   "skills": [
-    { "forkPath": "skills/brainstorming/SKILL.md", "upstreamPath": "skills/brainstorming/SKILL.md", "expectedStatus": "drifted" },
-    { "forkPath": "skills/writing-plans/SKILL.md", "upstreamPath": "skills/writing-plans/SKILL.md", "expectedStatus": "drifted" },
+    { "forkPath": "skills/brainstorming-codex/SKILL.md", "upstreamPath": "skills/brainstorming/SKILL.md", "expectedStatus": "drifted" },
+    { "forkPath": "skills/writing-plans-codex/SKILL.md", "upstreamPath": "skills/writing-plans/SKILL.md", "expectedStatus": "drifted" },
     {
-      "forkPath": "skills/subagent-driven-development/SKILL.md",
+      "forkPath": "skills/subagent-driven-development-codex/SKILL.md",
       "upstreamPath": "skills/subagent-driven-development/SKILL.md",
       "expectedStatus": "drifted"
     },
     {
-      "forkPath": "skills/requesting-code-review/SKILL.md",
+      "forkPath": "skills/requesting-code-review-codex/SKILL.md",
       "upstreamPath": "skills/requesting-code-review/SKILL.md",
       "expectedStatus": "drifted"
     },
     {
-      "forkPath": "skills/systematic-debugging/SKILL.md",
+      "forkPath": "skills/systematic-debugging-codex/SKILL.md",
       "upstreamPath": "skills/systematic-debugging/SKILL.md",
       "expectedStatus": "drifted"
     }

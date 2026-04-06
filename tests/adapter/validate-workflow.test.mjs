@@ -9,7 +9,7 @@ async function read(relativePath) {
 
 test('compareForkToUpstream reports when a result matches the expected sync state', async () => {
   const report = await compareForkToUpstream({
-    forkPath: 'skills/brainstorming/SKILL.md',
+    forkPath: 'skills/brainstorming-codex/SKILL.md',
     upstreamPath: 'skills/brainstorming/SKILL.md',
     sourceDir: 'tests/fixtures/upstream-superpowers',
     expectedStatus: 'drifted'

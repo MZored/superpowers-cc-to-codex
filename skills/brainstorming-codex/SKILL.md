@@ -1,5 +1,5 @@
 ---
-name: brainstorming
+name: brainstorming-codex
 description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation. Codex-backed variant."
 disable-model-invocation: true
 ---
@@ -18,7 +18,11 @@ Start by understanding the current project context, then ask questions one at a 
 **Codex integration:** Call the `codex_research` MCP tool for bounded repository research in Step 1. Claude stays in the main thread for all interactive and judgment work.
 
 <HARD-GATE>
-Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
+You MUST call codex_research in Step 1 before asking questions or proposing approaches.
+Repository context is required — no MCP call = cannot proceed to Step 2.
+Do NOT invoke any implementation skill, write any code, scaffold any project, or take any
+implementation action until you have presented a design and the user has approved it.
+This applies to EVERY project regardless of perceived simplicity.
 </HARD-GATE>
 
 ## Anti-Pattern: "This Is Too Simple To Need A Design"
@@ -48,7 +52,7 @@ You MUST create a task for each of these items and complete them in order:
 5. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` using `design-template.md`; commit
 6. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
 7. **User reviews written spec** — ask user to review the spec file before proceeding
-8. **Transition to implementation** — invoke superpowers-cc-to-codex:writing-plans skill to create implementation plan
+8. **Transition to implementation** — invoke superpowers-cc-to-codex:writing-plans-codex skill to create implementation plan
 
 ## The Process
 
@@ -116,7 +120,7 @@ Wait for the user's response. If they request changes, make them and re-run the 
 
 **Implementation:**
 
-- Invoke the superpowers-cc-to-codex:writing-plans skill to create a detailed implementation plan
+- Invoke the superpowers-cc-to-codex:writing-plans-codex skill to create a detailed implementation plan
 - Do NOT invoke any other skill. writing-plans is the next step.
 
 ## Key Principles

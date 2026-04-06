@@ -7,7 +7,7 @@ async function read(relativePath) {
 }
 
 test('execution workflow preserves review order and explicit status handling', async () => {
-  const skill = await read('skills/subagent-driven-development/SKILL.md');
+  const skill = await read('skills/subagent-driven-development-codex/SKILL.md');
   assert.match(skill, /spec compliance/i);
   assert.match(skill, /code quality/i);
   assert.match(skill, /DONE_WITH_CONCERNS/);
@@ -24,7 +24,7 @@ test('implementer and reviewer agents forward to the adapter without doing git w
 });
 
 test('TDD skill uses codex_implement MCP tool with TDD prompt template', async () => {
-  const skill = await read('skills/test-driven-development/SKILL.md');
+  const skill = await read('skills/test-driven-development-codex/SKILL.md');
   assert.match(skill, /codex_implement/);
   assert.match(skill, /promptTemplate:\s*"tdd"/);
   assert.match(skill, /tdd-implement-task\.md/);
@@ -34,7 +34,7 @@ test('TDD skill uses codex_implement MCP tool with TDD prompt template', async (
 });
 
 test('TDD prompt enforces test-first discipline', async () => {
-  const prompt = await read('skills/test-driven-development/prompts/tdd-implement-task.md');
+  const prompt = await read('skills/test-driven-development-codex/prompts/tdd-implement-task.md');
   assert.match(prompt, /NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST/);
   assert.match(prompt, /implementer-result\.schema\.json/);
 });
@@ -49,8 +49,8 @@ test('branch-analyzer agent forwards to the adapter in research mode', async () 
 });
 
 test('debugging and branch-finish skills use MCP tool calls instead of subagent types', async () => {
-  const debugging = await read('skills/systematic-debugging/SKILL.md');
-  const finishing = await read('skills/finishing-a-development-branch/SKILL.md');
+  const debugging = await read('skills/systematic-debugging-codex/SKILL.md');
+  const finishing = await read('skills/finishing-a-development-branch-codex/SKILL.md');
 
   assert.match(debugging, /codex_debug/);
   assert.match(finishing, /codex_branch_analysis/);
@@ -59,7 +59,7 @@ test('debugging and branch-finish skills use MCP tool calls instead of subagent 
 });
 
 test('finishing-a-development-branch skill presents structured options', async () => {
-  const skill = await read('skills/finishing-a-development-branch/SKILL.md');
+  const skill = await read('skills/finishing-a-development-branch-codex/SKILL.md');
   assert.match(skill, /codex_branch_analysis/);
   assert.match(skill, /Merge back to/);
   assert.match(skill, /Pull Request/);
@@ -88,9 +88,9 @@ test('reviewer agent documents review headers and review-type routing', async ()
 });
 
 test('execution workflows preserve TDD, review style, and resume semantics with MCP calls', async () => {
-  const workflow = await read('skills/subagent-driven-development/SKILL.md');
-  const tdd = await read('skills/test-driven-development/SKILL.md');
-  const review = await read('skills/requesting-code-review/SKILL.md');
+  const workflow = await read('skills/subagent-driven-development-codex/SKILL.md');
+  const tdd = await read('skills/test-driven-development-codex/SKILL.md');
+  const review = await read('skills/requesting-code-review-codex/SKILL.md');
 
   assert.match(workflow, /codex_implement/);
   assert.match(workflow, /codex_resume/);

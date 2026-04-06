@@ -78,7 +78,7 @@ test('buildWorkflowRequest maps typed review and resume arguments to adapter fla
 
   assert.equal(reviewRequest.base, 'origin/main');
   assert.equal(reviewRequest.schemaPath, '/plugin/schemas/code-review.schema.json');
-  assert.equal(resumeRequest.promptFile, '/plugin/skills/test-driven-development/prompts/tdd-implement-task.md');
+  assert.equal(resumeRequest.promptFile, '/plugin/skills/test-driven-development-codex/prompts/tdd-implement-task.md');
 });
 
 test('every tool request resolves to existing promptFile and schemaPath on disk', async () => {

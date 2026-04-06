@@ -55,7 +55,7 @@ case "$REVIEW_TYPE" in
       --effort medium \
       --base "$BASE_REF" \
       --schema "${CLAUDE_PLUGIN_ROOT}/schemas/code-review.schema.json" \
-      --promptFile "${CLAUDE_PLUGIN_ROOT}/skills/requesting-code-review/prompts/review-brief.md" \
+      --promptFile "${CLAUDE_PLUGIN_ROOT}/skills/requesting-code-review-codex/prompts/review-brief.md" \
       "$TASK_TEXT"
     ;;
   advisory) # REVIEW_TYPE: advisory

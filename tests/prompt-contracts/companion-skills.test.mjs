@@ -12,14 +12,14 @@ async function listSkillDirectories() {
 }
 
 test('verification-before-completion skill exists with upstream sync header and iron law', async () => {
-  const skill = await read('skills/verification-before-completion/SKILL.md');
+  const skill = await read('skills/verification-before-completion-codex/SKILL.md');
   assert.match(skill, /name: verification-before-completion/);
   assert.match(skill, /Upstream source: obra\/superpowers/);
   assert.match(skill, /NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE/);
 });
 
 test('receiving-code-review skill exists with upstream sync header and Codex review handling', async () => {
-  const skill = await read('skills/receiving-code-review/SKILL.md');
+  const skill = await read('skills/receiving-code-review-codex/SKILL.md');
   assert.match(skill, /name: receiving-code-review/);
   assert.match(skill, /Upstream source: obra\/superpowers/);
   assert.match(skill, /codex_review/);
@@ -27,7 +27,7 @@ test('receiving-code-review skill exists with upstream sync header and Codex rev
 });
 
 test('dispatching-parallel-agents skill adapts Task dispatch to codex_implement MCP calls', async () => {
-  const skill = await read('skills/dispatching-parallel-agents/SKILL.md');
+  const skill = await read('skills/dispatching-parallel-agents-codex/SKILL.md');
   assert.match(skill, /name: dispatching-parallel-agents/);
   assert.match(skill, /Upstream source: obra\/superpowers/);
   assert.match(skill, /codex_implement/);
@@ -35,7 +35,7 @@ test('dispatching-parallel-agents skill adapts Task dispatch to codex_implement 
 });
 
 test('using-git-worktrees skill exists with safety verification steps', async () => {
-  const skill = await read('skills/using-git-worktrees/SKILL.md');
+  const skill = await read('skills/using-git-worktrees-codex/SKILL.md');
   assert.match(skill, /name: using-git-worktrees/);
   assert.match(skill, /Upstream source: obra\/superpowers/);
   assert.match(skill, /git check-ignore/);
@@ -43,7 +43,7 @@ test('using-git-worktrees skill exists with safety verification steps', async ()
 });
 
 test('research-brief covers repository structure, approaches, and risks with substance', async () => {
-  const brief = await read('skills/brainstorming/prompts/research-brief.md');
+  const brief = await read('skills/brainstorming-codex/prompts/research-brief.md');
   assert.match(brief, /repository structure|current patterns/i);
   assert.match(brief, /approach/i);
   assert.match(brief, /risk|tradeoff/i);
@@ -87,7 +87,7 @@ function stripDivergenceComments(body) {
 }
 
 test('dispatching-parallel-agents has no stale upstream Task() or subagent references', async () => {
-  const raw = await read('skills/dispatching-parallel-agents/SKILL.md');
+  const raw = await read('skills/dispatching-parallel-agents-codex/SKILL.md');
   const skill = stripDivergenceComments(raw);
   assert.doesNotMatch(skill, /\bTask\(/, 'Stale upstream Task() call found in active content');
   assert.doesNotMatch(skill, /general-purpose/, 'Stale upstream general-purpose agent reference');
@@ -95,7 +95,7 @@ test('dispatching-parallel-agents has no stale upstream Task() or subagent refer
 });
 
 test('dispatching-parallel-agents notes sessionId capture for codex_resume', async () => {
-  const skill = await read('skills/dispatching-parallel-agents/SKILL.md');
+  const skill = await read('skills/dispatching-parallel-agents-codex/SKILL.md');
   assert.match(
     skill,
     /sessionId[\s\S]*response|returned[\s\S]*sessionId|capture[\s\S]*sessionId/i,
@@ -104,7 +104,7 @@ test('dispatching-parallel-agents notes sessionId capture for codex_resume', asy
 });
 
 test('codex_implement JSON examples use only valid MCP tool keys', async () => {
-  const skill = await read('skills/dispatching-parallel-agents/SKILL.md');
+  const skill = await read('skills/dispatching-parallel-agents-codex/SKILL.md');
   const allowedArgKeys = new Set([
     'taskId', 'prompt', 'promptTemplate', 'workspaceRoot',
     'model', 'effort', 'serviceTier', 'timeoutMs', 'includeRawOutput'
@@ -127,7 +127,7 @@ test('codex_implement JSON examples use only valid MCP tool keys', async () => {
 });
 
 test('research-brief references a schema file that exists on disk', async () => {
-  const brief = await read('skills/brainstorming/prompts/research-brief.md');
+  const brief = await read('skills/brainstorming-codex/prompts/research-brief.md');
   const match = brief.match(/schemas\/([a-z0-9-]+\.schema\.json)/);
   assert.ok(match, 'research-brief.md must reference a schema file in schemas/');
   const schemaText = await read(`schemas/${match[1]}`);
@@ -136,7 +136,7 @@ test('research-brief references a schema file that exists on disk', async () => 
 });
 
 test('receiving-code-review documents trust hierarchy for feedback sources', async () => {
-  const skill = await read('skills/receiving-code-review/SKILL.md');
+  const skill = await read('skills/receiving-code-review-codex/SKILL.md');
   assert.match(
     skill,
     /trust (hierarchy|order|level)|partner\s*>\s*|prioriti[sz]e/i,
@@ -145,7 +145,7 @@ test('receiving-code-review documents trust hierarchy for feedback sources', asy
 });
 
 test('Claude-side-only skills flag upstream-namespace collision in divergence header', async () => {
-  for (const skill of ['verification-before-completion', 'using-git-worktrees']) {
+  for (const skill of ['verification-before-completion-codex', 'using-git-worktrees-codex']) {
     const body = await read(`skills/${skill}/SKILL.md`);
     assert.match(
       body,
@@ -156,7 +156,7 @@ test('Claude-side-only skills flag upstream-namespace collision in divergence he
 });
 
 test('using-git-worktrees uses consistent bare skill references in Integration section', async () => {
-  const skill = await read('skills/using-git-worktrees/SKILL.md');
+  const skill = await read('skills/using-git-worktrees-codex/SKILL.md');
   const integrationSection = skill.split('## Integration')[1] ?? '';
   assert.doesNotMatch(
     integrationSection,

@@ -9,7 +9,7 @@ Every plan MUST start with:
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers-cc-to-codex:subagent-driven-development to implement this plan task-by-task.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers-cc-to-codex:subagent-driven-development-codex to implement this plan task-by-task.
 
 **Goal:** [One sentence describing what this builds]
 **Architecture:** [2-3 sentences about approach]

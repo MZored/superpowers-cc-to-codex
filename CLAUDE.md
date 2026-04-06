@@ -67,17 +67,17 @@ User ↔ Claude (controller)
 
 | Skill | Purpose | MCP Tool |
 |-------|---------|----------|
-| `brainstorming` | Design exploration with bounded repo research | `codex_research` |
-| `writing-plans` | Plan creation with Codex first-pass drafting | `codex_plan` |
-| `subagent-driven-development` | Task execution with implementer + reviewer | `codex_implement` + `codex_review` |
-| `requesting-code-review` | Structured or advisory diff review | `codex_review` |
-| `receiving-code-review` | External feedback reception with verification | `codex_review` (as feedback source) |
-| `systematic-debugging` | 4-phase debugging with root cause investigation | `codex_debug` |
-| `test-driven-development` | Strict TDD via Codex implementer with red-green-refactor prompt | `codex_implement` (`promptTemplate: "tdd"`) |
-| `finishing-a-development-branch` | Branch completion with Codex readiness analysis | `codex_branch_analysis` |
-| `dispatching-parallel-agents` | Parallel independent-domain dispatch | `codex_implement` (parallel calls) |
-| `verification-before-completion` | Claude-side evidence-before-claims gate | N/A — Claude-side only |
-| `using-git-worktrees` | Isolated git worktree setup with safety checks | N/A — Claude-side only |
+| `brainstorming-codex` | Design exploration with bounded repo research | `codex_research` |
+| `writing-plans-codex` | Plan creation with Codex first-pass drafting | `codex_plan` |
+| `subagent-driven-development-codex` | Task execution with implementer + reviewer | `codex_implement` + `codex_review` |
+| `requesting-code-review-codex` | Structured or advisory diff review | `codex_review` |
+| `receiving-code-review-codex` | External feedback reception with verification | `codex_review` (as feedback source) |
+| `systematic-debugging-codex` | 4-phase debugging with root cause investigation | `codex_debug` |
+| `test-driven-development-codex` | Strict TDD via Codex implementer with red-green-refactor prompt | `codex_implement` (`promptTemplate: "tdd"`) |
+| `finishing-a-development-branch-codex` | Branch completion with Codex readiness analysis | `codex_branch_analysis` |
+| `dispatching-parallel-agents-codex` | Parallel independent-domain dispatch | `codex_implement` (parallel calls) |
+| `verification-before-completion-codex` | Claude-side evidence-before-claims gate | N/A — Claude-side only |
+| `using-git-worktrees-codex` | Isolated git worktree setup with safety checks | N/A — Claude-side only |
 
 Skills resume existing Codex threads via `codex_resume`. The `agents/` directory
 holds deprecated thin forwarders kept for phase-1 backward compatibility only —

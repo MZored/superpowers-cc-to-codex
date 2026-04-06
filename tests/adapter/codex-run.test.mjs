@@ -17,7 +17,7 @@ test('implement runs use codex exec with workspace-write and an output schema', 
     model: 'gpt-5.4',
     effort: 'medium',
     schemaPath: 'schemas/implementer-result.schema.json',
-    promptFile: 'skills/subagent-driven-development/prompts/implement-task.md'
+    promptFile: 'skills/subagent-driven-development-codex/prompts/implement-task.md'
   });
 
   assert.deepEqual(invocation.command.slice(0, 4), ['codex', 'exec', '--json', '--sandbox']);
@@ -73,7 +73,7 @@ test('resume runs omit init-only flags that the live resume command does not sup
     sessionId: '019d4f82-58b8-72d3-9212-2e3d3fc69bcb',
     model: 'gpt-5.4',
     effort: 'medium',
-    promptFile: 'skills/subagent-driven-development/prompts/fix-task.md'
+    promptFile: 'skills/subagent-driven-development-codex/prompts/fix-task.md'
   });
 
   assert.deepEqual(invocation.command.slice(0, 4), [

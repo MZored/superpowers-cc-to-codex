@@ -26,7 +26,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-run.mjs" research \
   --model gpt-5.4-mini \
   --effort low \
   --schema "${CLAUDE_PLUGIN_ROOT}/schemas/branch-analysis.schema.json" \
-  --promptFile "${CLAUDE_PLUGIN_ROOT}/skills/finishing-a-development-branch/prompts/branch-analysis-brief.md" \
+  --promptFile "${CLAUDE_PLUGIN_ROOT}/skills/finishing-a-development-branch-codex/prompts/branch-analysis-brief.md" \
   "$TASK_TEXT"
 ```
 

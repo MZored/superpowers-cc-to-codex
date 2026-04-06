@@ -1,5 +1,5 @@
 ---
-name: writing-plans
+name: writing-plans-codex
 description: Use when you have a spec or requirements for a multi-step task, before touching code. Codex-backed variant.
 disable-model-invocation: true
 ---
@@ -15,6 +15,12 @@ Divergence: Codex-backed plan drafter for first pass; Claude reviews and finaliz
 
 **Save plans to:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`
 - (User preferences for plan location override this default)
+
+<HARD-GATE>
+You MUST call codex_plan in Step 2. You cannot write the plan yourself.
+The plan drafter produces the first draft; Claude reviews and refines.
+No codex_plan call = cannot proceed to review or saving.
+</HARD-GATE>
 
 ## Checklist
 
@@ -37,7 +43,7 @@ You MUST create a task for each of these items and complete them in order:
 3. **Review the draft** — Claude reviews the returned plan against the spec (see Self-Review below)
 4. **Fix issues** — edit the plan inline to fix any gaps found in review
 5. **Save plan** — write to `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md` using `plan-template.md` header; commit
-6. **Offer execution** — present the plan to the user and offer to execute via superpowers-cc-to-codex:subagent-driven-development
+6. **Offer execution** — present the plan to the user and offer to execute via superpowers-cc-to-codex:subagent-driven-development-codex
 
 ## Self-Review (Claude's Job)
 
@@ -60,4 +66,4 @@ If you find issues, fix them inline. If you find a spec requirement with no task
 
 After saving the plan:
 
-> "Plan complete and saved to `<path>`. Execute using superpowers-cc-to-codex:subagent-driven-development — dispatches Codex implementer per task with two-stage review."
+> "Plan complete and saved to `<path>`. Execute using superpowers-cc-to-codex:subagent-driven-development-codex — dispatches Codex implementer per task with two-stage review."

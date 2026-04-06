@@ -71,17 +71,17 @@ Resolution: explicit MCP args → project config → tool defaults. Every parame
 
 | Skill | What it does | MCP Tool |
 |-------|-------------|----------|
-| `brainstorming` | Design exploration with bounded repo research | `codex_research` |
-| `writing-plans` | Plan creation with Codex first-pass drafting | `codex_plan` |
-| `subagent-driven-development` | Task execution with implementer + reviewer | `codex_implement` + `codex_review` |
-| `requesting-code-review` | Structured or advisory diff review | `codex_review` |
-| `receiving-code-review` | External feedback reception with verification | `codex_review` |
-| `systematic-debugging` | 4-phase debugging with root cause investigation | `codex_debug` |
-| `test-driven-development` | Strict red-green-refactor TDD | `codex_implement` (TDD mode) |
-| `finishing-a-development-branch` | Branch completion with readiness analysis | `codex_branch_analysis` |
-| `dispatching-parallel-agents` | Parallel independent-domain dispatch | `codex_implement` (parallel) |
-| `verification-before-completion` | Evidence-before-claims safety gate | Claude-side only |
-| `using-git-worktrees` | Isolated worktree setup with safety checks | Claude-side only |
+| `brainstorming-codex` | Design exploration with bounded repo research | `codex_research` |
+| `writing-plans-codex` | Plan creation with Codex first-pass drafting | `codex_plan` |
+| `subagent-driven-development-codex` | Task execution with implementer + reviewer | `codex_implement` + `codex_review` |
+| `requesting-code-review-codex` | Structured or advisory diff review | `codex_review` |
+| `receiving-code-review-codex` | External feedback reception with verification | `codex_review` |
+| `systematic-debugging-codex` | 4-phase debugging with root cause investigation | `codex_debug` |
+| `test-driven-development-codex` | Strict red-green-refactor TDD | `codex_implement` (TDD mode) |
+| `finishing-a-development-branch-codex` | Branch completion with readiness analysis | `codex_branch_analysis` |
+| `dispatching-parallel-agents-codex` | Parallel independent-domain dispatch | `codex_implement` (parallel) |
+| `verification-before-completion-codex` | Evidence-before-claims safety gate | Claude-side only |
+| `using-git-worktrees-codex` | Isolated worktree setup with safety checks | Claude-side only |
 
 ## Requirements
 

@@ -1,5 +1,5 @@
 ---
-name: finishing-a-development-branch
+name: finishing-a-development-branch-codex
 description: Complete development work with Codex-backed branch analysis and structured finish options. Use only when the user explicitly asks for the Codex-backed branch finishing workflow.
 disable-model-invocation: true
 ---
@@ -24,6 +24,11 @@ Example:
   }
 }
 ```
+
+<HARD-GATE>
+You MUST call codex_branch_analysis before presenting finish options.
+Branch readiness assessment requires Codex analysis. No analysis = no finish actions.
+</HARD-GATE>
 
 ## Overview
 

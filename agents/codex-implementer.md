@@ -40,7 +40,7 @@ if [ -z "$TASK_ID" ]; then
   exit 1
 fi
 
-PROMPT_FILE_PATH="${CLAUDE_PLUGIN_ROOT}/skills/subagent-driven-development/prompts/implement-task.md"
+PROMPT_FILE_PATH="${CLAUDE_PLUGIN_ROOT}/skills/subagent-driven-development-codex/prompts/implement-task.md"
 if [ -n "$PROMPT_FILE_OVERRIDE" ]; then
   PROMPT_FILE_PATH="${CLAUDE_PLUGIN_ROOT}/skills/$PROMPT_FILE_OVERRIDE"
 fi

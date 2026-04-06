@@ -1,5 +1,5 @@
 ---
-name: requesting-code-review
+name: requesting-code-review-codex
 description: Request a high-signal Codex-backed review of a diff or task result. Use when completing tasks, implementing major features, or before merging. Codex-backed variant.
 disable-model-invocation: true
 ---
@@ -14,6 +14,11 @@ Divergence: Codex-backed reviewer agent; adapter-managed review prompts; no upst
 Call the `codex_review` MCP tool to catch issues before they cascade. The reviewer gets precisely crafted context for evaluation — never your session's history. This keeps the reviewer focused on the work product, not your thought process, and preserves your own context for continued work.
 
 Pass a structured `prompt` with the `scope` and `reviewStyle` fields matching the review type needed.
+
+<HARD-GATE>
+You MUST call codex_review for ALL review work. You cannot review code yourself.
+External review catches what self-review misses. No MCP call = review not complete.
+</HARD-GATE>
 
 **Core principle:** Review early, review often.
 

@@ -1,5 +1,5 @@
 ---
-name: dispatching-parallel-agents
+name: dispatching-parallel-agents-codex
 description: Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies
 ---
 <!--
@@ -15,6 +15,11 @@ Divergence: Codex-backed dispatch — parallel `codex_implement` MCP calls repla
 When you have multiple unrelated tasks (different subsystems, different bugs), working them sequentially wastes time. Each thread is independent and can happen in parallel.
 
 **Core principle:** Dispatch one `codex_implement` per independent problem domain. Let them work concurrently.
+
+<HARD-GATE>
+Parallel execution MUST use codex_implement calls. You cannot implement tasks yourself.
+This skill dispatches Codex workers — Claude orchestrates, Codex executes.
+</HARD-GATE>
 
 ## When to Use
 

@@ -67,13 +67,13 @@ User ↔ Claude (controller)
 
 | Skill | Purpose | Agent |
 |-------|---------|-------|
-| `brainstorming` | Design exploration with bounded repo research | `codex-brainstorm-researcher` |
-| `writing-plans` | Plan creation with Codex first-pass drafting | `codex-plan-drafter` |
-| `subagent-driven-development` | Task execution with implementer + reviewer | `codex-implementer` |
-| `requesting-code-review` | Structured or advisory diff review | `codex-reviewer` |
-| `systematic-debugging` | 4-phase debugging with root cause investigation | `codex-debug-investigator` |
-| `test-driven-development` | Strict TDD via Codex implementer with red-green-refactor prompt | `codex-implementer` |
-| `finishing-a-development-branch` | Branch completion with Codex readiness analysis | `codex-branch-analyzer` |
+| `brainstorming-codex` | Design exploration with bounded repo research | `codex-brainstorm-researcher` |
+| `writing-plans-codex` | Plan creation with Codex first-pass drafting | `codex-plan-drafter` |
+| `subagent-driven-development-codex` | Task execution with implementer + reviewer | `codex-implementer` |
+| `requesting-code-review-codex` | Structured or advisory diff review | `codex-reviewer` |
+| `systematic-debugging-codex` | 4-phase debugging with root cause investigation | `codex-debug-investigator` |
+| `test-driven-development-codex` | Strict TDD via Codex implementer with red-green-refactor prompt | `codex-implementer` |
+| `finishing-a-development-branch-codex` | Branch completion with Codex readiness analysis | `codex-branch-analyzer` |
 
 ## Conventions
 

@@ -26,7 +26,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-run.mjs" research \
   --model gpt-5.4-mini \
   --effort low \
   --schema "${CLAUDE_PLUGIN_ROOT}/schemas/brainstorm-research.schema.json" \
-  --promptFile "${CLAUDE_PLUGIN_ROOT}/skills/brainstorming/prompts/research-brief.md" \
+  --promptFile "${CLAUDE_PLUGIN_ROOT}/skills/brainstorming-codex/prompts/research-brief.md" \
   "$TASK_TEXT"
 ```
 

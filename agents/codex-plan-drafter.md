@@ -26,7 +26,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-run.mjs" plan \
   --model gpt-5.4-mini \
   --effort medium \
   --schema "${CLAUDE_PLUGIN_ROOT}/schemas/plan-draft.schema.json" \
-  --promptFile "${CLAUDE_PLUGIN_ROOT}/skills/writing-plans/prompts/planning-brief.md" \
+  --promptFile "${CLAUDE_PLUGIN_ROOT}/skills/writing-plans-codex/prompts/planning-brief.md" \
   "$TASK_TEXT"
 ```
 

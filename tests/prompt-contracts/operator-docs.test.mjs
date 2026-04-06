@@ -21,10 +21,10 @@ test('README documents marketplace install, upstream superpowers reference, lice
   assert.match(readme, /MIT/);
 
   const expectedSkills = [
-    'brainstorming', 'writing-plans', 'subagent-driven-development',
-    'requesting-code-review', 'receiving-code-review', 'systematic-debugging',
-    'test-driven-development', 'finishing-a-development-branch',
-    'dispatching-parallel-agents', 'verification-before-completion', 'using-git-worktrees'
+    'brainstorming-codex', 'writing-plans-codex', 'subagent-driven-development-codex',
+    'requesting-code-review-codex', 'receiving-code-review-codex', 'systematic-debugging-codex',
+    'test-driven-development-codex', 'finishing-a-development-branch-codex',
+    'dispatching-parallel-agents-codex', 'verification-before-completion-codex', 'using-git-worktrees-codex'
   ];
   for (const skill of expectedSkills) {
     assert.match(readme, new RegExp(skill), `README should mention skill: ${skill}`);
