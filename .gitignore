@@ -1,18 +1,38 @@
-.worktrees/
-.serena/
+# OS
 .DS_Store
+Thumbs.db
 
-# internal working artifacts
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Dependencies
+node_modules/
+
+# Environment / secrets
+.env
+.env.*
+.npmrc
+
+# Build / pack artifacts
+*.tgz
+*.log
+
+# Runtime state
+.claude/state/
+
+# Test output
+coverage/
+.tmp/
+
+# Internal working artifacts
 docs/superpowers/plans/
 docs/superpowers/specs/
 /20??-??-??-*-design*.md
 
-# dependencies
-node_modules/
-
-# runtime state
-.claude/state/
-
-# test output
-coverage/
-.tmp/
+# Third-party tool state
+.worktrees/
+.serena/

@@ -4,6 +4,25 @@
   "version": "0.4.1",
   "type": "module",
   "description": "Standalone Claude Code plugin that forks selected superpowers workflows for Codex-backed execution.",
+  "license": "MIT",
+  "author": "mzored",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mzored/superpowers-cc-to-codex.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mzored/superpowers-cc-to-codex/issues"
+  },
+  "homepage": "https://github.com/mzored/superpowers-cc-to-codex#readme",
+  "keywords": [
+    "claude-code",
+    "claude-code-plugin",
+    "codex",
+    "openai",
+    "mcp",
+    "ai-coding",
+    "superpowers"
+  ],
   "engines": {
     "node": ">=22"
   },
