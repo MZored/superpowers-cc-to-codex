@@ -69,3 +69,37 @@ test('each listed tool has name, description, and inputSchema', { timeout: 15_00
 
   await client.close();
 });
+
+test('sdk client observes experimental task capability and tool execution metadata when enabled', { timeout: 15_000 }, async () => {
+  const client = new Client(
+    { name: 'test-client', version: '1.0.0' },
+    { capabilities: { roots: { listChanged: true } } }
+  );
+
+  const transport = new StdioClientTransport({
+    command: process.execPath,
+    args: ['scripts/mcp-server-launcher.mjs'],
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      SUPERPOWERS_CODEX_EXPERIMENTAL_TASKS: 'implement-resume'
+    }
+  });
+
+  await client.connect(transport);
+
+  const capabilities = client.getServerCapabilities();
+  assert.ok(capabilities?.tasks, 'server should advertise tasks capability');
+  assert.ok(capabilities.tasks.list, 'server should advertise tasks/list support');
+  assert.ok(capabilities.tasks.cancel, 'server should advertise tasks/cancel support');
+  assert.ok(capabilities.tasks.requests?.tools?.call, 'server should advertise task-augmented tools/call support');
+
+  const tools = await client.request({ method: 'tools/list', params: {} }, ListToolsResultSchema);
+  const implement = tools.tools.find((tool) => tool.name === 'codex_implement');
+  const resume = tools.tools.find((tool) => tool.name === 'codex_resume');
+
+  assert.equal(implement?.execution?.taskSupport, 'optional');
+  assert.equal(resume?.execution?.taskSupport, 'optional');
+
+  await client.close();
+});

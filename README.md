@@ -99,6 +99,12 @@ npm run check:upstream      # Check upstream fork drift
 npm run validate:plugin     # Validate plugin structure
 ```
 
+## Transport Behavior
+
+- The MCP server is the primary transport and emits lifecycle-aware `notifications/progress` plus structured `notifications/message`.
+- Experimental task mode for `codex_implement` and `codex_resume` is off by default. Enable it with `SUPERPOWERS_CODEX_EXPERIMENTAL_TASKS=implement-resume`.
+- Workspace resume state stays under `.claude/state/codex/`. Experimental task-mode records live under `${CLAUDE_PLUGIN_DATA}/mcp-tasks/`.
+
 ## Links
 
 - [obra/superpowers](https://github.com/obra/superpowers) — upstream skills framework

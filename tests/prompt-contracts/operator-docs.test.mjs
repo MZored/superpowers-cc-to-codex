@@ -51,6 +51,8 @@ test('operator docs cover codex state inspection and workflow examples', async (
 
   assert.match(state, /list-codex-state\.mjs/);
   assert.match(state, /\$\{CLAUDE_PLUGIN_ROOT\}/);
+  assert.match(state, /workspace resume/i);
+  assert.match(state, /CLAUDE_PLUGIN_DATA/);
   assert.match(doctor, /commands\/codex-state\.md/);
   assert.match(readme, /brainstorming/);
   assert.match(readme, /writing-plans/);
@@ -59,4 +61,6 @@ test('operator docs cover codex state inspection and workflow examples', async (
   assert.match(readme, /test-driven-development/);
   assert.match(readme, /finishing-a-development-branch/);
   assert.match(readme, /codex_resume/i);
+  assert.match(readme, /notifications\/progress/);
+  assert.match(readme, /SUPERPOWERS_CODEX_EXPERIMENTAL_TASKS=implement-resume/);
 });
