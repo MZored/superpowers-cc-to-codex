@@ -15,24 +15,25 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
-import { randomUUID } from 'node:crypto';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   ListToolsRequestSchema,
   CallToolRequestSchema,
+  GetTaskRequestSchema,
+  GetTaskPayloadRequestSchema,
+  ListTasksRequestSchema,
+  CancelTaskRequestSchema,
   CancelledNotificationSchema,
   RootsListChangedNotificationSchema
 } from '@modelcontextprotocol/sdk/types.js';
 import { runCodexWorkflow } from './codex-run.mjs';
-import { createRequestRegistry, runWithMcpRuntime } from './lib/mcp-runtime.mjs';
-import {
-  TOOL_DEFINITIONS,
-  buildWorkflowRequest,
-  getToolDefinition
-} from './lib/mcp-tool-definitions.mjs';
-import { selectWorkspaceRoot } from './lib/mcp-workspace.mjs';
-import { loadProjectConfig, scaffoldProjectConfig } from './lib/codex-project-config.mjs';
+import { createRequestRegistry } from './lib/mcp-runtime.mjs';
+import { TOOL_DEFINITIONS } from './lib/mcp-tool-definitions.mjs';
+import { loadExperimentalFeatures } from './lib/experimental-features.mjs';
+import { createTaskRegistry } from './lib/mcp-task-registry.mjs';
+import { createTaskModeController, isTaskEligibleTool } from './lib/mcp-task-mode.mjs';
+import { dispatchWorkflowTool } from './lib/mcp-workflow-dispatch.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -102,6 +103,7 @@ function buildErrorResult(name, error, taskId = null) {
  * @param {Function} [opts.runWorkflow]      - Codex adapter (default: runCodexWorkflow)
  * @param {object}   [opts.server]           - MCP Server instance (for progress notifications)
  * @param {object}   [opts.requestRegistry]  - Registry for in-flight requests
+ * @param {Set<string>} [opts.scaffoldedWorkspaces] - Workspaces already scaffolded this session
  * @returns {Function} async handleToolCall(request, extra?) => CallToolResult
  */
 export function createToolCallHandler({
@@ -109,58 +111,21 @@ export function createToolCallHandler({
   getRoots,
   runWorkflow = runCodexWorkflow,
   server,
-  requestRegistry = createRequestRegistry()
+  requestRegistry = createRequestRegistry(),
+  scaffoldedWorkspaces = new Set()
 }) {
-  const scaffoldedWorkspaces = new Set();
-
   return async function handleToolCall(request, extra = {}) {
-    const { name, arguments: args = {} } = request.params;
-    const taskId = args.taskId ?? null;
-
-    // Resolve the tool definition
-    const tool = getToolDefinition(name);
-    if (!tool) {
-      return buildErrorResult(name, new Error(`Unknown tool: ${name}`), taskId);
-    }
-
-    // Resolve workspace root
-    let cwd;
     try {
-      const roots = await getRoots();
-      cwd = selectWorkspaceRoot({ workspaceRoot: args.workspaceRoot, roots });
-    } catch (error) {
-      return buildErrorResult(name, error, taskId);
-    }
-
-    // Scaffold config on first tool call per workspace
-    if (!scaffoldedWorkspaces.has(cwd)) {
-      scaffoldedWorkspaces.add(cwd);
-      await scaffoldProjectConfig(cwd);
-    }
-
-    // Load per-project config (model, effort, serviceTier overrides)
-    const projectConfig = await loadProjectConfig(cwd);
-
-    // Build workflow request
-    const workflowRequest = buildWorkflowRequest({
-      tool,
-      args,
-      cwd,
-      pluginRoot,
-      projectConfig
-    });
-
-    // Track this request so notifications/cancelled can abort it.
-    // Prefer extra.requestId (MCP SDK authoritative) over request.id; fall back
-    // to a fresh UUID so concurrent null-id calls don't collide in the registry.
-    const requestId = String(extra.requestId ?? request.id ?? randomUUID());
-    const progressToken = request.params._meta?.progressToken;
-
-    try {
-      const runtimeResult = await runWithMcpRuntime({
-        requestId,
-        timeoutMs: args.timeoutMs ?? tool.defaults.timeoutMs,
-        progressToken,
+      const { name, taskId, runtimeResult } = await dispatchWorkflowTool({
+        request,
+        extra: {
+          ...extra,
+          scaffoldedWorkspaces
+        },
+        pluginRoot,
+        getRoots,
+        runWorkflow,
+        requestRegistry,
         sendProgress: async (payload) => {
           if (!server) return;
           await server.notification({
@@ -171,27 +136,16 @@ export function createToolCallHandler({
         sendLog: async (payload) => {
           if (!server) return;
           await server.sendLoggingMessage(payload);
-        },
-        includeRawOutput: args.includeRawOutput ?? false,
-        operation: async ({ signal, markSpawned, cancel, onStdoutChunk, onStderrChunk }) => {
-          requestRegistry.set(requestId, { cancel });
-          try {
-            return await runWorkflow({
-              ...workflowRequest,
-              signal,
-              onSpawn: markSpawned,
-              onStdoutChunk,
-              onStderrChunk
-            });
-          } finally {
-            requestRegistry.delete(requestId);
-          }
         }
       });
 
       return buildToolResult(name, { ...runtimeResult, taskId });
     } catch (error) {
-      return buildErrorResult(name, error, taskId);
+      return buildErrorResult(
+        request.params?.name ?? 'unknown_tool',
+        error,
+        request.params?.arguments?.taskId ?? null
+      );
     }
   };
 }
@@ -204,9 +158,17 @@ export function createToolCallHandler({
  * Creates and configures the MCP Server with all workflow tool handlers.
  * Does NOT call server.connect() — caller is responsible for transport wiring.
  *
+ * @param {object} [opts]
+ * @param {Function} [opts.runWorkflow]
+ * @param {{taskMode?: string}} [opts.featureFlags]
+ * @param {object} [opts.taskRegistry]
  * @returns {Promise<Server>}
  */
-export async function createMcpServer() {
+export async function createMcpServer({
+  runWorkflow = runCodexWorkflow,
+  featureFlags = loadExperimentalFeatures(process.env),
+  taskRegistry = createTaskRegistry()
+} = {}) {
   // Mutable roots cache — updated when client sends roots/list_changed
   let cachedRoots = [];
 
@@ -215,12 +177,16 @@ export async function createMcpServer() {
     {
       capabilities: {
         logging: {},
-        tools: {}
+        tools: {},
+        ...(featureFlags.taskMode === 'implement-resume'
+          ? { tasks: { list: {}, cancel: {}, requests: { tools: { call: {} } } } }
+          : {})
       }
     }
   );
 
   const requestRegistry = createRequestRegistry();
+  const scaffoldedWorkspaces = new Set();
 
   async function refreshRoots() {
     try {
@@ -235,12 +201,45 @@ export async function createMcpServer() {
   const handleToolCall = createToolCallHandler({
     pluginRoot: PLUGIN_ROOT,
     getRoots: async () => (cachedRoots.length > 0 ? cachedRoots : refreshRoots()),
-    runWorkflow: runCodexWorkflow,
+    runWorkflow,
     server,
-    requestRegistry
+    requestRegistry,
+    scaffoldedWorkspaces
   });
 
-  // tools/list — advertise all 7 workflow tools
+  const executeTool = async (request, extra = {}) => {
+    const { name, taskId, runtimeResult } = await dispatchWorkflowTool({
+      request,
+      extra: {
+        ...extra,
+        scaffoldedWorkspaces
+      },
+      pluginRoot: PLUGIN_ROOT,
+      getRoots: async () => (cachedRoots.length > 0 ? cachedRoots : refreshRoots()),
+      runWorkflow,
+      requestRegistry,
+      sendProgress: async (payload) => {
+        await server.notification({
+          method: 'notifications/progress',
+          params: payload
+        });
+      },
+      sendLog: async (payload) => {
+        await server.sendLoggingMessage(payload);
+      },
+      exposeCancel: extra.exposeCancel
+    });
+
+    return buildToolResult(name, { ...runtimeResult, taskId });
+  };
+
+  const taskMode = createTaskModeController({
+    featureFlags,
+    taskRegistry,
+    server,
+    executeTool
+  });
+
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: TOOL_DEFINITIONS.map(({ name, title, description, annotations, inputSchema, outputSchema }) => ({
       name,
@@ -248,14 +247,39 @@ export async function createMcpServer() {
       description,
       ...(annotations ? { annotations } : {}),
       inputSchema,
-      ...(outputSchema ? { outputSchema } : {})
+      ...(outputSchema ? { outputSchema } : {}),
+      ...(featureFlags.taskMode === 'implement-resume' && isTaskEligibleTool(name)
+        ? { execution: { taskSupport: 'optional' } }
+        : {})
     }))
   }));
 
   // tools/call — dispatch to handler
   server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
+    if (taskMode.shouldCreateTask(request)) {
+      return taskMode.createTask(request, extra);
+    }
+
     return handleToolCall(request, extra);
   });
+
+  if (featureFlags.taskMode === 'implement-resume') {
+    server.setRequestHandler(GetTaskRequestSchema, async (request) => {
+      return taskMode.getTask(request.params.taskId);
+    });
+
+    server.setRequestHandler(GetTaskPayloadRequestSchema, async (request) => {
+      return taskMode.getTaskResult(request.params.taskId);
+    });
+
+    server.setRequestHandler(ListTasksRequestSchema, async () => {
+      return taskMode.listTasks();
+    });
+
+    server.setRequestHandler(CancelTaskRequestSchema, async (request) => {
+      return taskMode.cancelTask(request.params.taskId);
+    });
+  }
 
   // notifications/cancelled — cancel in-flight Codex subprocess
   server.setNotificationHandler(CancelledNotificationSchema, (notification) => {

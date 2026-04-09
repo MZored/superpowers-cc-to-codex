@@ -47,6 +47,9 @@ export function createRequestRegistry() {
  * @param {boolean}  [opts.includeRawOutput=false] - Attach truncated raw stdout to the result
  * @param {Function}  opts.operation         - async ({ signal, cancel, markSpawned, onStdoutChunk, onStderrChunk }) => result
  *                                              Call markSpawned(handle) once the subprocess starts.
+ *                                              `handle` may expose either
+ *                                              `terminate(reason)` or the legacy
+ *                                              `kill(signal)` shape.
  *                                              Call cancel(reason) to self-cancel the operation.
  *
  * @returns {Promise<{ status: 'ok'|'partial', timedOut, sessionId, assistantText, result, stderrTail, rawOutput? }>}
@@ -114,7 +117,11 @@ export async function runWithMcpRuntime({
   function cancel(reason = 'cancelled') {
     controller.abort(reason);
     if (trackedHandle) {
-      trackedHandle.terminate(reason);
+      if (typeof trackedHandle.terminate === 'function') {
+        trackedHandle.terminate(reason);
+      } else if (typeof trackedHandle.kill === 'function') {
+        trackedHandle.kill('SIGTERM');
+      }
     }
   }
 
