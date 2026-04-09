@@ -1,10 +1,89 @@
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  createCodexJsonlStreamParser,
+  advanceCodexLifecycle,
   parseCodexJsonl,
   truncateRawOutput,
   validateImplementerResult
 } from '../../scripts/lib/codex-jsonl.mjs';
+
+test('createCodexJsonlStreamParser separates diagnostics from JSON events across chunk boundaries', async () => {
+  const fixture = await readFile(
+    new URL('../fixtures/codex/streaming-mixed-output.txt', import.meta.url),
+    'utf8'
+  );
+
+  const events = [];
+  const diagnostics = [];
+  const parser = createCodexJsonlStreamParser({
+    onJsonEvent: (event) => events.push(event),
+    onDiagnosticLine: (line) => diagnostics.push(line)
+  });
+
+  parser.push(fixture.slice(0, 41));
+  parser.push(fixture.slice(41, 97));
+  parser.push(fixture.slice(97));
+  parser.end();
+
+  assert.deepEqual(events.map((event) => event.type), [
+    'thread.started',
+    'turn.started',
+    'item.completed',
+    'turn.completed'
+  ]);
+  assert.equal(diagnostics.length, 2);
+  assert.match(diagnostics[0], /\bWARN\b/);
+  assert.match(diagnostics[1], /\bINFO\b/);
+});
+
+test('advanceCodexLifecycle reflects only observed lifecycle states', async () => {
+  const fixture = await readFile(
+    new URL('../fixtures/codex/streaming-mixed-output.txt', import.meta.url),
+    'utf8'
+  );
+
+  const seenStages = [];
+  let state = null;
+  const parser = createCodexJsonlStreamParser({
+    onJsonEvent: (event) => {
+      const nextState = advanceCodexLifecycle(state, event);
+      if (nextState !== state && nextState?.stage) {
+        seenStages.push(nextState.stage);
+      }
+      state = nextState;
+    }
+  });
+
+  parser.push(fixture.slice(0, 41));
+  parser.push(fixture.slice(41, 97));
+  parser.push(fixture.slice(97));
+  parser.end();
+
+  assert.deepEqual(seenStages, [
+    'thread.started',
+    'turn.started',
+    'item.completed',
+    'turn.completed'
+  ]);
+  assert.equal(state.threadId, 'thread-stream');
+  assert.equal(state.assistantText, '{"status":"DONE","summary":"ok"}');
+  assert.deepEqual(state.result, { status: 'DONE', summary: 'ok' });
+});
+
+test('parseCodexJsonl extracts thread id, final assistant text, and parsed result from buffered output', async () => {
+  const fixture = await readFile(
+    new URL('../fixtures/codex/streaming-mixed-output.txt', import.meta.url),
+    'utf8'
+  );
+
+  const parsed = parseCodexJsonl(fixture);
+
+  assert.equal(parsed.threadId, 'thread-stream');
+  assert.equal(parsed.assistantText, '{"status":"DONE","summary":"ok"}');
+  assert.deepEqual(parsed.result, { status: 'DONE', summary: 'ok' });
+});
 
 test('parseCodexJsonl extracts thread id and final assistant text', () => {
   const parsed = parseCodexJsonl(

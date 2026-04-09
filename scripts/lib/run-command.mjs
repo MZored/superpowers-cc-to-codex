@@ -1,6 +1,10 @@
 import { spawn } from 'node:child_process';
 
-export async function runCommand(command, args, { cwd, stdin, signal, onSpawn } = {}) {
+export async function runCommand(
+  command,
+  args,
+  { cwd, stdin, signal, onSpawn, onStdout, onStderr } = {}
+) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, { cwd, stdio: ['pipe', 'pipe', 'pipe'] });
     let stdout = '';
@@ -9,9 +13,11 @@ export async function runCommand(command, args, { cwd, stdin, signal, onSpawn } 
     child.stdout.setEncoding('utf8');
     child.stderr.setEncoding('utf8');
     child.stdout.on('data', (chunk) => {
+      onStdout?.(chunk);
       stdout += chunk;
     });
     child.stderr.on('data', (chunk) => {
+      onStderr?.(chunk);
       stderr += chunk;
     });
 

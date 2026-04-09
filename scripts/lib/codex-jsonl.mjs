@@ -16,26 +16,104 @@ function tryParseAssistantText(text) {
   }
 }
 
-export function parseCodexJsonl(jsonl) {
-  let threadId = null;
-  let assistantText = null;
-  let result = null;
+function appendChunk(buffer, chunk) {
+  return `${buffer}${typeof chunk === 'string' ? chunk : chunk?.toString?.('utf8') ?? ''}`;
+}
 
-  for (const line of jsonl.split('\n')) {
-    const event = tryParseLine(line);
-    if (!event) continue;
+function processLine(line, { onJsonEvent, onDiagnosticLine }) {
+  if (!line.trim()) return;
 
-    if (event.type === 'thread.started' && event.thread_id) {
-      threadId = event.thread_id;
-    }
+  const event = tryParseLine(line);
+  if (event) {
+    onJsonEvent?.(event);
+    return;
+  }
 
-    if (event.type === 'item.completed' && event.item?.type === 'agent_message') {
-      assistantText = event.item.text ?? assistantText;
-      result = tryParseAssistantText(event.item.text) ?? result;
+  onDiagnosticLine?.(line);
+}
+
+export function createCodexJsonlStreamParser({ onJsonEvent, onDiagnosticLine } = {}) {
+  let buffer = '';
+
+  function push(chunk) {
+    buffer = appendChunk(buffer, chunk);
+
+    const lines = buffer.split(/\r?\n/);
+    buffer = lines.pop() ?? '';
+
+    for (const line of lines) {
+      processLine(line, { onJsonEvent, onDiagnosticLine });
     }
   }
 
-  return { threadId, assistantText, result };
+  function end() {
+    if (buffer) {
+      processLine(buffer, { onJsonEvent, onDiagnosticLine });
+      buffer = '';
+    }
+  }
+
+  return { push, end };
+}
+
+export function advanceCodexLifecycle(previous, event) {
+  if (!event || typeof event !== 'object') return previous;
+
+  if (event.type === 'thread.started') {
+    return {
+      ...(previous ?? {}),
+      stage: 'thread.started',
+      threadId: event.thread_id ?? previous?.threadId ?? null,
+      message: 'Codex thread created'
+    };
+  }
+
+  if (event.type === 'turn.started') {
+    return {
+      ...(previous ?? {}),
+      stage: 'turn.started',
+      message: 'Codex turn started'
+    };
+  }
+
+  if (event.type === 'item.completed' && event.item?.type === 'agent_message') {
+    const assistantText = event.item.text ?? previous?.assistantText ?? null;
+    return {
+      ...(previous ?? {}),
+      stage: 'item.completed',
+      assistantText,
+      result: tryParseAssistantText(assistantText) ?? previous?.result ?? null,
+      message: 'Codex assistant message completed'
+    };
+  }
+
+  if (event.type === 'turn.completed') {
+    return {
+      ...(previous ?? {}),
+      stage: 'turn.completed',
+      message: 'Codex run completed'
+    };
+  }
+
+  return previous;
+}
+
+export function parseCodexJsonl(jsonl) {
+  let state = null;
+  const parser = createCodexJsonlStreamParser({
+    onJsonEvent: (event) => {
+      state = advanceCodexLifecycle(state, event);
+    }
+  });
+
+  parser.push(jsonl);
+  parser.end();
+
+  return {
+    threadId: state?.threadId ?? null,
+    assistantText: state?.assistantText ?? null,
+    result: state?.result ?? null
+  };
 }
 
 export function truncateRawOutput(text, maxChars = 12_000) {

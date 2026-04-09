@@ -21,6 +21,42 @@ test('runCommand forwards stdin to the child process', async () => {
   assert.equal(stdout, 'CODEX\n');
 });
 
+test('runCommand streams stdout and stderr chunks while still returning combined output', async () => {
+  let stdoutFromCallback = '';
+  let stderrFromCallback = '';
+  let stdoutChunks = 0;
+  let stderrChunks = 0;
+
+  const { stdout, stderr } = await runCommand(
+    process.execPath,
+    [
+      '-e',
+      [
+        "process.stdout.write('alpha');",
+        "setTimeout(() => process.stdout.write('beta'), 10);",
+        "setTimeout(() => process.stderr.write('warn'), 5);"
+      ].join(' ')
+    ],
+    {
+      onStdout: (chunk) => {
+        stdoutChunks += 1;
+        stdoutFromCallback += chunk;
+      },
+      onStderr: (chunk) => {
+        stderrChunks += 1;
+        stderrFromCallback += chunk;
+      }
+    }
+  );
+
+  assert.ok(stdoutChunks > 0);
+  assert.ok(stderrChunks > 0);
+  assert.equal(stdoutFromCallback, stdout);
+  assert.equal(stderrFromCallback, stderr);
+  assert.equal(stdout, 'alphabeta');
+  assert.equal(stderr, 'warn');
+});
+
 test('runCommand terminates the child when the abort signal fires', async () => {
   const controller = new AbortController();
   const promise = runCommand(process.execPath, ['-e', 'setTimeout(() => {}, 10_000)'], {
