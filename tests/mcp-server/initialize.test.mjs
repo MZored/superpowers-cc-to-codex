@@ -19,6 +19,12 @@ test('createMcpServer returns a Server instance', async () => {
   assert.equal(typeof server.setRequestHandler, 'function', 'server should have setRequestHandler method');
 });
 
+test('createMcpServer advertises logging capability', async () => {
+  const server = await createMcpServer();
+
+  assert.deepEqual(server._capabilities?.logging, {});
+});
+
 test('createMcpServer registers tools/list handler that returns all 7 tools', async () => {
   const server = await createMcpServer();
 

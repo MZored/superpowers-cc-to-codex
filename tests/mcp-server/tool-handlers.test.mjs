@@ -99,17 +99,32 @@ test('handler returns isError: true with "Unknown tool" message for unrecognized
 // signal + onSpawn forwarding (via runWithMcpRuntime operation callback)
 // ---------------------------------------------------------------------------
 
-test('handler passes signal and onSpawn to runWorkflow via the operation callback', async () => {
+test('handler passes signal, spawn, and stream callbacks to runWorkflow and forwards logs', async () => {
   let capturedSignal;
   let capturedOnSpawn;
+  let capturedOnStdoutChunk;
+  let capturedOnStderrChunk;
+  const logPayloads = [];
 
   const handleToolCall = createToolCallHandler({
     pluginRoot: '/plugin',
     getRoots: async () => [{ uri: 'file:///repo' }],
-    runWorkflow: async ({ signal, onSpawn }) => {
+    server: {
+      sendLoggingMessage: async (payload) => {
+        logPayloads.push(payload);
+      }
+    },
+    runWorkflow: async ({ signal, onSpawn, onStdoutChunk, onStderrChunk }) => {
       capturedSignal = signal;
       capturedOnSpawn = onSpawn;
-      return { stdout: '', stderr: '' };
+      capturedOnStdoutChunk = onStdoutChunk;
+      capturedOnStderrChunk = onStderrChunk;
+      onStdoutChunk('WARN runtime diagnostic line\n');
+      onStderrChunk('stderr warning line\n');
+      return {
+        stdout: JSON.stringify({ type: 'thread.started', thread_id: 'thread-signal' }),
+        stderr: ''
+      };
     }
   });
 
@@ -119,6 +134,10 @@ test('handler passes signal and onSpawn to runWorkflow via the operation callbac
 
   assert.ok(capturedSignal instanceof AbortSignal, 'signal should be an AbortSignal');
   assert.equal(typeof capturedOnSpawn, 'function', 'onSpawn should be a function');
+  assert.equal(typeof capturedOnStdoutChunk, 'function', 'onStdoutChunk should be a function');
+  assert.equal(typeof capturedOnStderrChunk, 'function', 'onStderrChunk should be a function');
+  assert.equal(logPayloads[0]?.logger, 'codex.exec');
+  assert.equal(logPayloads[1]?.logger, 'codex.stderr');
 });
 
 // ---------------------------------------------------------------------------

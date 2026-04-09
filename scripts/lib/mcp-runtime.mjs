@@ -1,4 +1,9 @@
-import { parseCodexJsonl, truncateRawOutput } from './codex-jsonl.mjs';
+import {
+  advanceCodexLifecycle,
+  createCodexJsonlStreamParser,
+  parseCodexJsonl,
+  truncateRawOutput
+} from './codex-jsonl.mjs';
 
 const PROGRESS_INTERVAL_MS = 20_000;
 
@@ -38,8 +43,9 @@ export function createRequestRegistry() {
  * @param {number}   [opts.timeoutMs]        - Hard timeout in ms; 0/undefined = no timeout
  * @param {string}   [opts.progressToken]    - MCP progress token; triggers progress notifications
  * @param {Function} [opts.sendProgress]     - async (payload) => void; called every PROGRESS_INTERVAL_MS
+ * @param {Function} [opts.sendLog]          - async (payload) => void; forwards logging messages
  * @param {boolean}  [opts.includeRawOutput=false] - Attach truncated raw stdout to the result
- * @param {Function}  opts.operation         - async ({ signal, cancel, markSpawned }) => result
+ * @param {Function}  opts.operation         - async ({ signal, cancel, markSpawned, onStdoutChunk, onStderrChunk }) => result
  *                                              Call markSpawned(child) once the subprocess starts.
  *                                              Call cancel(reason) to self-cancel the operation.
  *
@@ -50,6 +56,7 @@ export async function runWithMcpRuntime({
   timeoutMs,
   progressToken,
   sendProgress,
+  sendLog,
   includeRawOutput = false,
   operation
 }) {
@@ -59,6 +66,50 @@ export async function runWithMcpRuntime({
   let progressTimer = null;
   let timeoutTimer = null;
   let timedOut = false;
+  let progress = 0;
+  let lifecycleState = null;
+
+  async function emitProgress(message) {
+    if (!progressToken || !sendProgress) return;
+
+    progress += 1;
+
+    try {
+      await sendProgress({
+        progressToken,
+        progress,
+        message
+      });
+    } catch {
+      // Non-fatal — progress notification failures must not kill the operation
+    }
+  }
+
+  async function emitLog(level, logger, data) {
+    if (!sendLog) return;
+
+    try {
+      await sendLog({ level, logger, data });
+    } catch {
+      // Non-fatal — log notification failures must not kill the operation
+    }
+  }
+
+  const stdoutParser = createCodexJsonlStreamParser({
+    onJsonEvent: (event) => {
+      const nextState = advanceCodexLifecycle(lifecycleState, event);
+      const stageChanged = nextState?.stage && nextState.stage !== lifecycleState?.stage;
+      lifecycleState = nextState;
+
+      if (stageChanged && nextState?.message) {
+        void emitProgress(nextState.message);
+      }
+    },
+    onDiagnosticLine: (line) => {
+      const level = /\bWARN\b/.test(line) ? 'warning' : 'info';
+      void emitLog(level, 'codex.exec', { requestId, line });
+    }
+  });
 
   function cancel(reason = 'cancelled') {
     controller.abort(reason);
@@ -69,21 +120,14 @@ export async function runWithMcpRuntime({
 
   function markSpawned(child) {
     trackedChild = child;
+    void emitProgress('Codex process started');
   }
 
   // Start optional progress ticker
   if (progressToken && sendProgress) {
     progressTimer = setInterval(async () => {
       const elapsed = Math.round((Date.now() - startedAt) / 1000);
-      try {
-        await sendProgress({
-          progressToken,
-          progress: elapsed,
-          message: `Codex still running (${elapsed}s elapsed)`
-        });
-      } catch {
-        // Non-fatal — progress notification failures must not kill the operation
-      }
+      await emitProgress(`Codex still running (${elapsed}s elapsed)`);
     }, PROGRESS_INTERVAL_MS);
   }
 
@@ -101,7 +145,20 @@ export async function runWithMcpRuntime({
   }
 
   try {
-    const executionResult = await operation({ signal: controller.signal, cancel, markSpawned });
+    const executionResult = await operation({
+      signal: controller.signal,
+      cancel,
+      markSpawned,
+      onStdoutChunk: (chunk) => {
+        stdoutParser.push(chunk);
+      },
+      onStderrChunk: (chunk) => {
+        const line = chunk.trimEnd();
+        if (!line) return;
+        void emitLog('warning', 'codex.stderr', { requestId, line });
+      }
+    });
+    stdoutParser.end();
     cleanup();
 
     const raw = executionResult?.stdout ?? '';
@@ -127,6 +184,7 @@ export async function runWithMcpRuntime({
       ...(includeRawOutput ? { rawOutput: raw ? truncateRawOutput(raw) : null } : {})
     };
   } catch (error) {
+    stdoutParser.end();
     cleanup();
 
     // Attempt partial salvage from stdout attached to the error
@@ -134,20 +192,12 @@ export async function runWithMcpRuntime({
     const parsed = parseCodexJsonl(raw);
 
     if (parsed.threadId || parsed.assistantText || parsed.result) {
-      if (progressToken && sendProgress) {
-        const elapsed = Math.round((Date.now() - startedAt) / 1000);
-        try {
-          await sendProgress({
-            progressToken,
-            progress: elapsed,
-            message: timedOut
-              ? `Codex timed out after ${elapsed}s — returning partial result`
-              : `Codex errored after ${elapsed}s — returning partial result`
-          });
-        } catch {
-          // Non-fatal
-        }
-      }
+      const elapsed = Math.round((Date.now() - startedAt) / 1000);
+      await emitProgress(
+        timedOut
+          ? `Codex timed out after ${elapsed}s — returning partial result`
+          : `Codex errored after ${elapsed}s — returning partial result`
+      );
 
       return {
         status: 'partial',

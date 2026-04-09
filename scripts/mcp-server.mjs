@@ -168,14 +168,20 @@ export function createToolCallHandler({
             params: payload
           });
         },
+        sendLog: async (payload) => {
+          if (!server) return;
+          await server.sendLoggingMessage(payload);
+        },
         includeRawOutput: args.includeRawOutput ?? false,
-        operation: async ({ signal, markSpawned, cancel }) => {
+        operation: async ({ signal, markSpawned, cancel, onStdoutChunk, onStderrChunk }) => {
           requestRegistry.set(requestId, { cancel });
           try {
             return await runWorkflow({
               ...workflowRequest,
               signal,
-              onSpawn: markSpawned
+              onSpawn: markSpawned,
+              onStdoutChunk,
+              onStderrChunk
             });
           } finally {
             requestRegistry.delete(requestId);
@@ -208,6 +214,7 @@ export async function createMcpServer() {
     { name: 'superpowers-cc-to-codex', version: PACKAGE_JSON.version },
     {
       capabilities: {
+        logging: {},
         tools: {}
       }
     }

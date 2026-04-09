@@ -214,12 +214,26 @@ export async function buildPrompt(invocation) {
   });
 }
 
-async function executeCommand(command, cwd, prompt, { signal, onSpawn } = {}) {
+async function executeCommand(
+  command,
+  cwd,
+  prompt,
+  { signal, onSpawn, onStdoutChunk, onStderrChunk } = {}
+) {
   const args = prompt ? [...command.slice(1), prompt] : command.slice(1);
-  return runCommand(command[0], args, { cwd, signal, onSpawn });
+  return runCommand(command[0], args, {
+    cwd,
+    signal,
+    onSpawn,
+    onStdout: onStdoutChunk,
+    onStderr: onStderrChunk
+  });
 }
 
-async function runInvocation(invocation, { signal, onSpawn } = {}) {
+async function runInvocation(
+  invocation,
+  { signal, onSpawn, onStdoutChunk, onStderrChunk } = {}
+) {
   if (invocation.dryRun) {
     return { stdout: JSON.stringify(invocation, null, 2), stderr: '' };
   }
@@ -227,11 +241,21 @@ async function runInvocation(invocation, { signal, onSpawn } = {}) {
   const prompt = await buildPrompt(invocation);
 
   try {
-    return await executeCommand(invocation.command, invocation.cwd, prompt, { signal, onSpawn });
+    return await executeCommand(invocation.command, invocation.cwd, prompt, {
+      signal,
+      onSpawn,
+      onStdoutChunk,
+      onStderrChunk
+    });
   } catch (error) {
     const output = `${error.stderr ?? ''}\n${error.stdout ?? ''}`;
     if (invocation.serviceTier === 'fast' && /service_tier|fast/i.test(output)) {
-      return executeCommand(stripFastServiceTier(invocation.command), invocation.cwd, prompt, { signal, onSpawn });
+      return executeCommand(stripFastServiceTier(invocation.command), invocation.cwd, prompt, {
+        signal,
+        onSpawn,
+        onStdoutChunk,
+        onStderrChunk
+      });
     }
 
     throw error;
@@ -254,6 +278,8 @@ export async function runCodexWorkflow({
   taskText,
   signal,
   onSpawn,
+  onStdoutChunk,
+  onStderrChunk,
   dryRun = false,
   runtimeDetector = detectCodexRuntime,
   executor = runInvocation,
@@ -289,7 +315,7 @@ export async function runCodexWorkflow({
   let execution;
 
   try {
-    execution = await executor(invocation, { signal, onSpawn });
+    execution = await executor(invocation, { signal, onSpawn, onStdoutChunk, onStderrChunk });
   } catch (error) {
     // Salvage: attempt to extract partial state from error output
     const rawStdout = error.stdout ?? '';
