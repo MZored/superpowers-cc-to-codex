@@ -67,3 +67,25 @@ test('runCommand terminates the child when the abort signal fires', async () => 
 
   await assert.rejects(promise, /aborted|signal|terminated/i);
 });
+
+test('runCommand escalates to SIGKILL when the child ignores SIGTERM', async () => {
+  const controller = new AbortController();
+  const promise = runCommand(
+    process.execPath,
+    [
+      '-e',
+      [
+        "process.on('SIGTERM', () => {});",
+        'setInterval(() => {}, 1_000);'
+      ].join(' ')
+    ],
+    {
+      signal: controller.signal,
+      termination: { graceMs: 25 }
+    }
+  );
+
+  controller.abort('aborted');
+
+  await assert.rejects(promise, /SIGKILL|aborted|terminated/i);
+});

@@ -46,7 +46,7 @@ export function createRequestRegistry() {
  * @param {Function} [opts.sendLog]          - async (payload) => void; forwards logging messages
  * @param {boolean}  [opts.includeRawOutput=false] - Attach truncated raw stdout to the result
  * @param {Function}  opts.operation         - async ({ signal, cancel, markSpawned, onStdoutChunk, onStderrChunk }) => result
- *                                              Call markSpawned(child) once the subprocess starts.
+ *                                              Call markSpawned(handle) once the subprocess starts.
  *                                              Call cancel(reason) to self-cancel the operation.
  *
  * @returns {Promise<{ status: 'ok'|'partial', timedOut, sessionId, assistantText, result, stderrTail, rawOutput? }>}
@@ -62,7 +62,7 @@ export async function runWithMcpRuntime({
 }) {
   const controller = new AbortController();
   const startedAt = Date.now();
-  let trackedChild = null;
+  let trackedHandle = null;
   let progressTimer = null;
   let timeoutTimer = null;
   let timedOut = false;
@@ -113,13 +113,13 @@ export async function runWithMcpRuntime({
 
   function cancel(reason = 'cancelled') {
     controller.abort(reason);
-    if (trackedChild) {
-      trackedChild.kill('SIGTERM');
+    if (trackedHandle) {
+      trackedHandle.terminate(reason);
     }
   }
 
-  function markSpawned(child) {
-    trackedChild = child;
+  function markSpawned(handle) {
+    trackedHandle = handle;
     void emitProgress('Codex process started');
   }
 

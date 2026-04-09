@@ -1,12 +1,14 @@
 import { spawn } from 'node:child_process';
+import { createProcessTerminator } from './process-termination.mjs';
 
 export async function runCommand(
   command,
   args,
-  { cwd, stdin, signal, onSpawn, onStdout, onStderr } = {}
+  { cwd, stdin, signal, onSpawn, onStdout, onStderr, termination } = {}
 ) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, { cwd, stdio: ['pipe', 'pipe', 'pipe'] });
+    const terminator = createProcessTerminator(child, termination);
     let stdout = '';
     let stderr = '';
 
@@ -21,14 +23,14 @@ export async function runCommand(
       stderr += chunk;
     });
 
-    onSpawn?.(child);
+    onSpawn?.({ child, terminate: terminator.terminate });
 
     function abort() {
-      child.kill('SIGTERM');
+      terminator.terminate(signal?.reason ?? 'aborted');
     }
 
     if (signal?.aborted) {
-      child.kill('SIGTERM');
+      terminator.terminate(signal?.reason ?? 'aborted');
     } else if (signal) {
       signal.addEventListener('abort', abort, { once: true });
     }

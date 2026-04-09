@@ -2,21 +2,22 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { runWithMcpRuntime } from '../../scripts/lib/mcp-runtime.mjs';
 
-test('runWithMcpRuntime kills the tracked child when the timeout fires', async () => {
-  let killed = false;
+test('runWithMcpRuntime terminates the tracked handle when the timeout fires', async () => {
+  const reasons = [];
+  let rawKillCalled = false;
 
-  // The runtime's internal timeout timer calls cancel(), which invokes
-  // trackedChild.kill(). We verify that the tracked child's kill() is called.
   await runWithMcpRuntime({
     requestId: 'req-cancel',
     timeoutMs: 5,
     operation: async ({ markSpawned, signal }) => {
       markSpawned({
+        terminate(reason) {
+          reasons.push(reason);
+        },
         kill() {
-          killed = true;
+          rawKillCalled = true;
         }
       });
-      // Wait until the abort signal fires (triggered by the timeout timer)
       await new Promise((resolve) => {
         if (signal.aborted) {
           resolve();
@@ -28,7 +29,8 @@ test('runWithMcpRuntime kills the tracked child when the timeout fires', async (
     }
   }).catch(() => {});
 
-  assert.equal(killed, true);
+  assert.deepEqual(reasons, ['timed out']);
+  assert.equal(rawKillCalled, false);
 });
 
 test('runWithMcpRuntime re-throws when the operation throws without parseable stdout', async () => {
