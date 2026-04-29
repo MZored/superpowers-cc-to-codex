@@ -14,10 +14,10 @@ npm run validate:plugin     # Validate plugin structure
 
 ## Architecture
 
+- `scripts/mcp-server.mjs` — MCP server, the only transport for Codex delegation
 - `scripts/codex-run.mjs` — ONLY Codex CLI adapter (never call codex elsewhere)
 - `skills/{name}/SKILL.md` — orchestration workflow for Claude
 - `skills/{name}/prompts/*.md` — execution guidance sent to Codex
-- `agents/codex-{role}.md` — thin forwarders to codex-run.mjs
 - `schemas/*.schema.json` — Codex I/O contracts
 - `.claude/state/codex/` — task resume state (outside plugin root)
 
@@ -28,10 +28,10 @@ npm run validate:plugin     # Validate plugin structure
 - No TypeScript, no bundler, no external dependencies
 - kebab-case files, camelCase functions
 - Tests: `node:test` + `node:assert/strict`, no mocking library
-- Every skill needs: Codex agent + schema + prompt (no behavioral-only skills)
+- Every workflow skill needs: MCP tool wiring + schema + prompt (no behavioral-only skills)
 
 ## Pitfalls
 
-- Only `codex-run.mjs` invokes codex CLI — all agents delegate through it
+- Only `codex-run.mjs` invokes codex CLI — all skills delegate through it via the MCP server
 - Task state in `.claude/state/codex/` — never in plugin directories
 - Upstream drift check must pass in CI
