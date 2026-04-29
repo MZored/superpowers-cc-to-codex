@@ -31,6 +31,7 @@
     "validate:plugin": "claude plugin validate .claude-plugin/plugin.json",
     "doctor": "node scripts/doctor.mjs",
     "check:upstream": "node scripts/check-upstream-superpowers.mjs",
+    "version:sync": "node scripts/version-sync.mjs",
     "smoke-test": "node --test tests/integration/smoke.test.mjs",
     "smoke-test:mcp": "node --test tests/integration/mcp-server-smoke.test.mjs"
   },
