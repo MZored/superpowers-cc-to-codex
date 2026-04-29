@@ -41,8 +41,7 @@ Claude is the controller. Codex is a bounded worker.
 ```
 User ↔ Claude (controller)
          ├─ skills/         → SKILL.md workflow + prompts/ sent to Codex
-         ├─ scripts/mcp-server.mjs → MCP server (primary transport, registered in plugin.json)
-         ├─ agents/         → Deprecated compatibility shims (phase 1, not primary path)
+         ├─ scripts/mcp-server.mjs → MCP server (only transport, registered in plugin.json)
          ├─ scripts/        → codex-run.mjs is the ONLY Codex CLI adapter
          ├─ schemas/        → JSON schemas for Codex I/O contracts
          └─ .claude/state/  → Task resume state (survives plugin updates)
@@ -52,7 +51,7 @@ User ↔ Claude (controller)
 
 | File | Role |
 |------|------|
-| `scripts/mcp-server.mjs` | MCP server — primary transport for Codex delegation |
+| `scripts/mcp-server.mjs` | MCP server — only transport for Codex delegation |
 | `scripts/codex-run.mjs` | Single adapter for all Codex CLI invocations |
 | `scripts/lib/mcp-runtime.mjs` | Timeout, progress ticker, and cancellation for MCP requests |
 | `scripts/lib/mcp-tool-definitions.mjs` | Typed schemas for the 7 MCP workflow tools |
@@ -79,9 +78,7 @@ User ↔ Claude (controller)
 | `verification-before-completion-codex` | Claude-side evidence-before-claims gate | N/A — Claude-side only |
 | `using-git-worktrees-codex` | Isolated git worktree setup with safety checks | N/A — Claude-side only |
 
-Skills resume existing Codex threads via `codex_resume`. The `agents/` directory
-holds deprecated thin forwarders kept for phase-1 backward compatibility only —
-new work should invoke the MCP tools directly.
+Skills resume existing Codex threads via `codex_resume`. The MCP server is the only transport — skills invoke MCP tools directly.
 
 ## Conventions
 
@@ -91,7 +88,6 @@ new work should invoke the MCP tools directly.
 - Node.js built-in imports use `node:` prefix (`node:fs/promises`, `node:path`)
 - No TypeScript, no bundler. External dependencies limited to the MCP SDK and Zod.
 - Each skill: `skills/{name}/SKILL.md` + `skills/{name}/prompts/*.md`
-- Each agent: `agents/codex-{role}.md` (thin forwarder)
 - Each schema: `schemas/{workflow}.schema.json`
 
 ### Naming

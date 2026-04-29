@@ -17,12 +17,12 @@ Core runtime adapter and utilities for Codex CLI integration.
 
 ## Conventions
 
-- `codex-run.mjs` is the ONLY file that spawns the codex process — all agents delegate through it
+- `codex-run.mjs` is the ONLY file that spawns the codex process — all skills delegate through it via the MCP server
 - CLI entry detection: `import.meta.url === \`file://${process.argv[1]}\``
 - Functions accept `runner` parameter for testability (dependency injection, no mocking library)
 - State files stored as `.claude/state/codex/{taskId}.json` — outside plugin root
 
 ## Anti-Patterns
 
-- Calling codex CLI directly from agents or skills — always go through codex-run.mjs
+- Calling codex CLI directly from skills or scripts — always go through codex-run.mjs
 - Storing state inside the plugin directory tree
