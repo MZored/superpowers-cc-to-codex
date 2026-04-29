@@ -30,13 +30,29 @@ export async function dispatchWorkflowTool({
   const cwd = selectWorkspaceRoot({ workspaceRoot: args.workspaceRoot, roots });
   const scaffoldedWorkspaces = extra.scaffoldedWorkspaces;
 
+  let scaffoldCreated = false;
   if (tool.annotations?.readOnlyHint) {
     // Read-only tools must not create project config files as a side effect.
   } else if (scaffoldedWorkspaces && !scaffoldedWorkspaces.has(cwd)) {
     scaffoldedWorkspaces.add(cwd);
-    await scaffoldProjectConfig(cwd);
+    scaffoldCreated = await scaffoldProjectConfig(cwd);
   } else if (!scaffoldedWorkspaces) {
-    await scaffoldProjectConfig(cwd);
+    scaffoldCreated = await scaffoldProjectConfig(cwd);
+  }
+
+  if (scaffoldCreated && sendLog) {
+    try {
+      await sendLog({
+        level: 'info',
+        logger: 'codex.config',
+        data: {
+          message: `Created .claude/codex-defaults.json with auto/fast defaults. Customize model/effort there.`,
+          path: `${cwd}/.claude/codex-defaults.json`
+        }
+      });
+    } catch {
+      // Logging is best-effort.
+    }
   }
 
   const projectConfig = await loadProjectConfig(cwd);

@@ -10,7 +10,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { access, mkdtemp } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createToolCallHandler } from '../../scripts/mcp-server.mjs';
@@ -257,6 +257,69 @@ test('read-only tools do not scaffold project config into the workspace', async 
   );
 
   await assert.rejects(access(join(root, '.claude', 'codex-defaults.json')), /ENOENT/);
+});
+
+test('write tools emit an MCP log message when scaffolding the project config', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'sp-scaffold-log-'));
+  const logs = [];
+  const handleToolCall = createToolCallHandler({
+    pluginRoot: '/plugin',
+    getRoots: async () => [{ uri: `file://${root}` }],
+    runWorkflow: async () => ({ stdout: '', stderr: '' }),
+    server: {
+      notification: async () => {},
+      sendLoggingMessage: async (payload) => {
+        logs.push(payload);
+      }
+    }
+  });
+
+  await handleToolCall(
+    makeRequest('codex_implement', {
+      taskId: 'scaffold-log',
+      prompt: 'first implement run',
+      workspaceRoot: root
+    })
+  );
+
+  const scaffoldLog = logs.find(
+    (entry) => entry.logger === 'codex.config' && /codex-defaults\.json/.test(entry.data?.message ?? '')
+  );
+  assert.ok(scaffoldLog, `expected codex.config scaffold log, saw ${JSON.stringify(logs)}`);
+  assert.equal(scaffoldLog.level, 'info');
+});
+
+test('scaffold log is not emitted when codex-defaults.json already exists', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'sp-scaffold-skip-'));
+  await mkdir(join(root, '.claude'), { recursive: true });
+  await writeFile(
+    join(root, '.claude', 'codex-defaults.json'),
+    JSON.stringify({ effort: 'high' })
+  );
+
+  const logs = [];
+  const handleToolCall = createToolCallHandler({
+    pluginRoot: '/plugin',
+    getRoots: async () => [{ uri: `file://${root}` }],
+    runWorkflow: async () => ({ stdout: '', stderr: '' }),
+    server: {
+      notification: async () => {},
+      sendLoggingMessage: async (payload) => {
+        logs.push(payload);
+      }
+    }
+  });
+
+  await handleToolCall(
+    makeRequest('codex_implement', {
+      taskId: 'no-scaffold-log',
+      prompt: 'implement run with existing config',
+      workspaceRoot: root
+    })
+  );
+
+  const scaffoldLog = logs.find((entry) => entry.logger === 'codex.config');
+  assert.equal(scaffoldLog, undefined, 'scaffold log should be silent when file exists');
 });
 
 // ---------------------------------------------------------------------------
