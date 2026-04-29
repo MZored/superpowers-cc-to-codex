@@ -336,8 +336,9 @@ export async function runCodexWorkflow({
       });
     }
 
-    // For resume mode, validate the result even on failure (before re-throwing)
-    if (mode === 'resume' && schemaPath && parsed.result) {
+    // Implement and resume share the implementer-result contract — validate
+    // both even on failure, before re-throwing the underlying executor error.
+    if (['implement', 'resume'].includes(mode) && schemaPath && parsed.result) {
       validateImplementerResult(parsed.result);
     }
 
@@ -351,8 +352,8 @@ export async function runCodexWorkflow({
       ? rawStdout.trim() || null
       : null;
 
-  // For resume mode, validate the structured result
-  if (mode === 'resume' && schemaPath && parsed.result) {
+  // Implement and resume share the implementer-result contract.
+  if (['implement', 'resume'].includes(mode) && schemaPath && parsed.result) {
     validateImplementerResult(parsed.result);
   }
 

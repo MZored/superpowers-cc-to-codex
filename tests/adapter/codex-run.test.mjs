@@ -278,7 +278,7 @@ test('runCodexWorkflow returns parsed output and persists thread state', async (
     executor: async () => ({
       stdout: [
         '{"type":"thread.started","thread_id":"thread-123"}',
-        '{"type":"item.completed","item":{"type":"agent_message","text":"{\\"status\\":\\"DONE\\"}"}}'
+        '{"type":"item.completed","item":{"type":"agent_message","text":"{\\"status\\":\\"DONE\\",\\"summary\\":\\"ok\\",\\"files_changed\\":[],\\"tests\\":[],\\"concerns\\":[]}"}}'
       ].join('\n'),
       stderr: '',
       code: 0
@@ -290,7 +290,13 @@ test('runCodexWorkflow returns parsed output and persists thread state', async (
   });
 
   assert.equal(output.sessionId, 'thread-123');
-  assert.deepEqual(output.result, { status: 'DONE' });
+  assert.deepEqual(output.result, {
+    status: 'DONE',
+    summary: 'ok',
+    files_changed: [],
+    tests: [],
+    concerns: []
+  });
   assert.equal(saves[0].taskId, 'task-17');
   assert.equal(saves[0].state.sessionId, 'thread-123');
 });
