@@ -165,6 +165,55 @@ export function buildInvocation({
   };
 }
 
+// Retry policy ------------------------------------------------------------
+//
+// Codex CLI calls run over the network. Transient infrastructure failures —
+// dropped connections, 5xx upstream responses, brief auth refresh hiccups —
+// surface as executor errors that succeed on a second attempt. User-facing
+// errors (bad model, missing auth, schema validation) do NOT, and we must
+// not paper over them with a retry.
+//
+// `isTransientCodexError` returns `true` only for failure shapes that we
+// expect a fresh subprocess invocation to fix. Override via runCodexWorkflow's
+// `isTransient` parameter for tests or operator-managed policies.
+
+const TRANSIENT_NODE_ERROR_CODES = new Set([
+  'ECONNRESET', 'ECONNABORTED', 'ETIMEDOUT', 'ENOTFOUND', 'EPIPE', 'EAI_AGAIN'
+]);
+
+const TRANSIENT_OUTPUT_PATTERNS = [
+  /\b(?:5\d\d)\s+(?:status|service unavailable|bad gateway|gateway timeout)\b/i,
+  /service unavailable|temporarily unavailable/i,
+  /connection reset|connection aborted|connection closed/i,
+  /econnreset|etimedout|enetunreach|enotfound/i,
+  /upstream\s+(?:error|timeout)/i
+];
+
+async function runWithTransientRetry({ attempt, isTransient, maxRetries }) {
+  let lastError;
+  for (let i = 0; i <= maxRetries; i += 1) {
+    try {
+      return await attempt();
+    } catch (error) {
+      lastError = error;
+      if (i === maxRetries || !isTransient(error)) {
+        throw error;
+      }
+      // Loop continues — single retry by default. No backoff: Codex's own
+      // server-side rate limiting handles real overload.
+    }
+  }
+  throw lastError;
+}
+
+export function isTransientCodexError(error) {
+  if (!error) return false;
+  if (TRANSIENT_NODE_ERROR_CODES.has(error.code)) return true;
+
+  const haystack = `${error.message ?? ''}\n${error.stderr ?? ''}\n${error.stdout ?? ''}`;
+  return TRANSIENT_OUTPUT_PATTERNS.some((pattern) => pattern.test(haystack));
+}
+
 export function composePromptText(template, taskText) {
   if (!template && !taskText) return undefined;
   if (!template) return taskText;
@@ -284,7 +333,9 @@ export async function runCodexWorkflow({
   dryRun = false,
   runtimeDetector = detectCodexRuntime,
   executor = runInvocation,
-  stateStore = { loadRequired: loadRequiredTaskState, save: saveTaskState }
+  stateStore = { loadRequired: loadRequiredTaskState, save: saveTaskState },
+  isTransient = isTransientCodexError,
+  maxRetries = 1
 }) {
   if (taskId != null) {
     assertSafeTaskId(taskId);
@@ -320,7 +371,11 @@ export async function runCodexWorkflow({
   let execution;
 
   try {
-    execution = await executor(invocation, { signal, onSpawn, onStdoutChunk, onStderrChunk });
+    execution = await runWithTransientRetry({
+      isTransient,
+      maxRetries,
+      attempt: () => executor(invocation, { signal, onSpawn, onStdoutChunk, onStderrChunk })
+    });
   } catch (error) {
     // Salvage: attempt to extract partial state from error output
     const rawStdout = error.stdout ?? '';
