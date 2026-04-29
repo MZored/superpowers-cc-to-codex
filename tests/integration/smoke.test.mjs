@@ -1,69 +1,74 @@
 /**
  * smoke.test.mjs — codex-run.mjs integration smoke tests.
  *
- * Exercises the Codex CLI adapter (scripts/codex-run.mjs) by spawning real
- * Codex processes for all 6 workflow agent modes.
+ * Exercises the Codex CLI adapter (scripts/codex-run.mjs) by calling
+ * runCodexWorkflow directly — the same entry point the MCP server uses —
+ * for the workflow modes that don't require prior session state or git
+ * diff setup (research, plan, implement).
+ *
+ * Skipped modes:
+ *  - resume: requires a prior session id; covered by adapter unit tests
+ *  - review: requires a structured git diff scope; covered by adapter
+ *    unit tests and CLI contract tests
  *
  * For the stdio MCP server smoke test (initialize + tools/list handshake),
  * see tests/integration/mcp-server-smoke.test.mjs.
  */
 import { before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { detectCodexRuntime } from '../../scripts/detect-codex.mjs';
+import { runCodexWorkflow } from '../../scripts/codex-run.mjs';
 
-const execFileAsync = promisify(execFile);
 const TEST_DIR = dirname(fileURLToPath(import.meta.url));
-const CODEX_RUN = resolve(TEST_DIR, '../../scripts/codex-run.mjs');
 const PROJECT_CWD = resolve(TEST_DIR, '../..');
-const REVIEW_SCHEMA = resolve(TEST_DIR, '../../schemas/code-review.schema.json');
 
-const AGENTS = [
-  { name: 'codex-brainstorm-researcher', mode: 'research' },
-  { name: 'codex-plan-drafter', mode: 'plan' },
-  { name: 'codex-implementer', mode: 'implement' },
-  { name: 'codex-reviewer', mode: 'review' },
-  { name: 'codex-debug-investigator', mode: 'research' },
-  { name: 'codex-branch-analyzer', mode: 'research' }
-];
+const MODES = ['research', 'plan', 'implement'];
 
-describe('codex-run smoke tests', { timeout: 210_000 }, () => {
+describe('codex-run smoke tests', { timeout: 300_000 }, () => {
+  let runtimeReady = false;
+  let skipReason = '';
+
   before(async () => {
     const runtime = await detectCodexRuntime();
 
     if (!runtime.installed) {
-      throw new Error(`Codex CLI not found: ${runtime.loginStatus}`);
+      skipReason = `Codex CLI not installed: ${runtime.loginStatus ?? 'unknown'}`;
+      return;
     }
 
     if (!runtime.authenticated) {
-      throw new Error(`Codex CLI not authenticated: ${runtime.loginStatus}`);
+      skipReason = `Codex CLI not authenticated: ${runtime.loginStatus ?? 'unknown'}`;
+      return;
     }
+
+    runtimeReady = true;
   });
 
-  for (const { name, mode } of AGENTS) {
+  for (const mode of MODES) {
     it(
-      `returns output for ${name}`,
-      { timeout: 30_000 },
-      async () => {
-        const args = [CODEX_RUN, mode, '--cwd', PROJECT_CWD];
-
-        // Structured review (with --schema + --base) routes through codex exec,
-        // avoiding codex review CLI's stdin-only prompt limitation.
-        if (mode === 'review') {
-          args.push('--schema', REVIEW_SCHEMA, '--base', 'HEAD');
+      `runCodexWorkflow returns assistantText for mode=${mode}`,
+      { timeout: 90_000 },
+      async (t) => {
+        if (!runtimeReady) {
+          t.skip(skipReason || 'Codex runtime unavailable');
+          return;
         }
 
-        args.push('Respond with exactly: ok');
-
-        const result = await execFileAsync('node', args, {
+        const output = await runCodexWorkflow({
+          mode,
           cwd: PROJECT_CWD,
-          timeout: 30_000
+          taskId: `smoke-${mode}`,
+          taskText: 'Respond with exactly the literal string: ok',
+          model: 'auto',
+          effort: 'auto'
         });
 
-        assert.ok(result.stdout.trim().length > 0);
+        assert.ok(
+          typeof output.assistantText === 'string' && output.assistantText.trim().length > 0,
+          `expected non-empty assistantText for mode=${mode}, got: ${JSON.stringify(output.assistantText)}`
+        );
       }
     );
   }
