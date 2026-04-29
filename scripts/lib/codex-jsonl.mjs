@@ -121,6 +121,18 @@ export function truncateRawOutput(text, maxChars = 12_000) {
   return `${text.slice(0, maxChars)}\n...[truncated ${text.length - maxChars} chars]`;
 }
 
+// stderr tails surface in MCP responses, where unbounded payloads bloat the
+// JSON-RPC wire size for long-running implement runs. Keep the *tail* (the
+// most recent bytes — that's where actionable failure signal lives) and
+// prepend a marker noting how much was dropped.
+export function truncateStderrTail(text, maxChars = 4_000) {
+  if (typeof text !== 'string' || text.length <= maxChars) {
+    return text ?? '';
+  }
+  const dropped = text.length - maxChars;
+  return `[truncated ${dropped} chars]\n...${text.slice(-maxChars)}`;
+}
+
 export function validateImplementerResult(result) {
   if (!result || typeof result !== 'object') {
     throw new Error('implementer-result must be a JSON object.');

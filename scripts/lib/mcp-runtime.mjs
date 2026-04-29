@@ -2,7 +2,8 @@ import {
   advanceCodexLifecycle,
   createCodexJsonlStreamParser,
   parseCodexJsonl,
-  truncateRawOutput
+  truncateRawOutput,
+  truncateStderrTail
 } from './codex-jsonl.mjs';
 
 const PROGRESS_INTERVAL_MS = 20_000;
@@ -187,7 +188,7 @@ export async function runWithMcpRuntime({
       sessionId: parsed.threadId ?? null,
       assistantText: parsed.assistantText ?? null,
       result: parsed.result ?? null,
-      stderrTail: executionResult?.stderr ?? executionResult?.stderrTail ?? '',
+      stderrTail: truncateStderrTail(executionResult?.stderr ?? executionResult?.stderrTail ?? ''),
       ...(includeRawOutput ? { rawOutput: raw ? truncateRawOutput(raw) : null } : {})
     };
   } catch (error) {
@@ -212,7 +213,7 @@ export async function runWithMcpRuntime({
         sessionId: parsed.threadId ?? null,
         assistantText: parsed.assistantText ?? null,
         result: parsed.result ?? null,
-        stderrTail: error.stderr ?? '',
+        stderrTail: truncateStderrTail(error.stderr ?? ''),
         ...(includeRawOutput ? { rawOutput: truncateRawOutput(raw) } : {})
       };
     }
