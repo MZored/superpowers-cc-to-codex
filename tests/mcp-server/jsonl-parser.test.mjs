@@ -176,12 +176,45 @@ test('validateImplementerResult throws when concerns contains non-strings', () =
   assert.throws(() => validateImplementerResult(malformed), /concerns must contain strings/);
 });
 
+test('validateImplementerResult throws for invalid status values', () => {
+  const malformed = {
+    status: 'OK',
+    summary: 'ok',
+    files_changed: [],
+    tests: [],
+    concerns: []
+  };
+  assert.throws(() => validateImplementerResult(malformed), /invalid status/);
+});
+
+test('validateImplementerResult throws when summary is not a string', () => {
+  const malformed = {
+    status: 'DONE',
+    summary: { text: 'ok' },
+    files_changed: [],
+    tests: [],
+    concerns: []
+  };
+  assert.throws(() => validateImplementerResult(malformed), /summary must be a string/);
+});
+
+test('validateImplementerResult throws when test entries are malformed', () => {
+  const malformed = {
+    status: 'DONE',
+    summary: 'ok',
+    files_changed: [],
+    tests: ['npm test'],
+    concerns: []
+  };
+  assert.throws(() => validateImplementerResult(malformed), /tests must contain objects/);
+});
+
 test('validateImplementerResult returns the result unchanged when valid', () => {
   const valid = {
     status: 'DONE',
     summary: 'ok',
     files_changed: ['a.mjs'],
-    tests: ['t.mjs'],
+    tests: [{ command: 'npm test', result: 'pass' }],
     concerns: []
   };
   assert.equal(validateImplementerResult(valid), valid);

@@ -51,7 +51,7 @@ case "$REVIEW_TYPE" in
     node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-run.mjs" review \
       --cwd "$PWD" \
       --taskId "$TASK_ID" \
-      --model gpt-5.4 \
+      --model auto \
       --effort medium \
       --base "$BASE_REF" \
       --schema "${CLAUDE_PLUGIN_ROOT}/schemas/code-review.schema.json" \

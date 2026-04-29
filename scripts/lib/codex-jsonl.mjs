@@ -136,8 +136,26 @@ export function validateImplementerResult(result) {
     throw new Error('implementer-result arrays are malformed.');
   }
 
+  if (!['DONE', 'DONE_WITH_CONCERNS', 'BLOCKED', 'NEEDS_CONTEXT'].includes(result.status)) {
+    throw new Error('implementer-result invalid status.');
+  }
+  if (typeof result.summary !== 'string') {
+    throw new Error('implementer-result: summary must be a string.');
+  }
   if (!result.files_changed.every((f) => typeof f === 'string')) {
     throw new Error('implementer-result: files_changed must contain strings.');
+  }
+  if (
+    !result.tests.every(
+      (entry) =>
+        entry &&
+        typeof entry === 'object' &&
+        !Array.isArray(entry) &&
+        typeof entry.command === 'string' &&
+        typeof entry.result === 'string'
+    )
+  ) {
+    throw new Error('implementer-result: tests must contain objects with command and result strings.');
   }
   if (!result.concerns.every((c) => typeof c === 'string')) {
     throw new Error('implementer-result: concerns must contain strings.');

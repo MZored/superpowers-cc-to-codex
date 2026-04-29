@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { detectCodexRuntime } from './detect-codex.mjs';
-import { loadRequiredTaskState, saveTaskState } from './lib/codex-state.mjs';
+import { assertSafeTaskId, loadRequiredTaskState, saveTaskState } from './lib/codex-state.mjs';
 import { runCommand } from './lib/run-command.mjs';
 import { buildStructuredReviewPrompt } from './lib/review-scope.mjs';
 import { parseCodexJsonl, validateImplementerResult } from './lib/codex-jsonl.mjs';
@@ -44,7 +44,7 @@ function normalizeServiceTier(requestedServiceTier, authProvider) {
 function buildCommonOptions({ model, effort, serviceTier, authProvider }) {
   const options = [];
 
-  if (model) {
+  if (model && model !== 'auto') {
     options.push('-m', model);
   }
 
@@ -198,8 +198,8 @@ export async function buildPrompt(invocation) {
   }
 
   if (invocation.uncommitted) {
-    // Advisory uncommitted review: prompt is passed separately to codex review --uncommitted
-    return template;
+    // Advisory uncommitted review: prompt is passed separately to codex review --uncommitted.
+    return composePromptText(template, invocation.taskText);
   }
 
   if (!invocation.base && !invocation.commit) {
@@ -285,6 +285,10 @@ export async function runCodexWorkflow({
   executor = runInvocation,
   stateStore = { loadRequired: loadRequiredTaskState, save: saveTaskState }
 }) {
+  if (taskId != null) {
+    assertSafeTaskId(taskId);
+  }
+
   const runtime = await runtimeDetector();
 
   const savedState =
@@ -339,7 +343,12 @@ export async function runCodexWorkflow({
     throw error;
   }
 
-  const parsed = parseCodexJsonl(execution.stdout ?? '');
+  const rawStdout = execution.stdout ?? '';
+  const parsed = parseCodexJsonl(rawStdout);
+  const plainAdvisoryText =
+    mode === 'review' && !schemaPath && !parsed.assistantText
+      ? rawStdout.trim() || null
+      : null;
 
   // For resume mode, validate the structured result
   if (mode === 'resume' && schemaPath && parsed.result) {
@@ -361,7 +370,7 @@ export async function runCodexWorkflow({
   return {
     ...execution,
     sessionId: effectiveSessionId,
-    assistantText: parsed.assistantText,
+    assistantText: parsed.assistantText ?? plainAdvisoryText,
     result: parsed.result
   };
 }

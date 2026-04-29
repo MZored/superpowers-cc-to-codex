@@ -32,3 +32,12 @@ test('brainstorming and planning skills call MCP tools instead of subagent types
   assert.doesNotMatch(brainstorming, /subagent_type/);
   assert.doesNotMatch(planning, /subagent_type/);
 });
+
+test('plan prompt and schema contract include the full markdown plan body', async () => {
+  const prompt = await read('skills/writing-plans-codex/prompts/planning-brief.md');
+  const schema = JSON.parse(await read('schemas/plan-draft.schema.json'));
+
+  assert.match(prompt, /plan_markdown/);
+  assert.ok(schema.required.includes('plan_markdown'), 'plan-draft schema must require plan_markdown');
+  assert.equal(schema.properties.plan_markdown.type, 'string');
+});

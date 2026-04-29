@@ -10,6 +10,9 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { access, mkdtemp } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { createToolCallHandler } from '../../scripts/mcp-server.mjs';
 
 // ---------------------------------------------------------------------------
@@ -236,6 +239,24 @@ test('handler throws when workspaceRoot is missing and multiple roots are advert
 
   assert.equal(result.isError, true);
   assert.match(result.content[0].text, /workspaceRoot/i);
+});
+
+test('read-only tools do not scaffold project config into the workspace', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'sp-readonly-tool-'));
+  const handleToolCall = createToolCallHandler({
+    pluginRoot: '/plugin',
+    getRoots: async () => [{ uri: `file://${root}` }],
+    runWorkflow: async () => ({ stdout: '', stderr: '' })
+  });
+
+  await handleToolCall(
+    makeRequest('codex_plan', {
+      prompt: 'plan without writing config',
+      workspaceRoot: root
+    })
+  );
+
+  await assert.rejects(access(join(root, '.claude', 'codex-defaults.json')), /ENOENT/);
 });
 
 // ---------------------------------------------------------------------------

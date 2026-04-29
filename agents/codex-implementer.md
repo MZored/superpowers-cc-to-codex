@@ -50,7 +50,7 @@ if [ -n "$RESUME_SESSION" ]; then
     --cwd "$PWD" \
     --taskId "$TASK_ID" \
     --sessionId "$RESUME_SESSION" \
-    --model gpt-5.4 \
+    --model auto \
     --effort medium \
     --promptFile "$PROMPT_FILE_PATH" \
     "$TASK_TEXT"
@@ -58,7 +58,7 @@ else
   node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-run.mjs" implement \
     --cwd "$PWD" \
     --taskId "$TASK_ID" \
-    --model gpt-5.4 \
+    --model auto \
     --effort medium \
     --schema "${CLAUDE_PLUGIN_ROOT}/schemas/implementer-result.schema.json" \
     --promptFile "$PROMPT_FILE_PATH" \

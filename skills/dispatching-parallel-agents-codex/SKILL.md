@@ -1,6 +1,7 @@
 ---
 name: dispatching-parallel-agents-codex
 description: Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies
+disable-model-invocation: true
 ---
 <!--
 Upstream source: obra/superpowers skills/dispatching-parallel-agents/SKILL.md

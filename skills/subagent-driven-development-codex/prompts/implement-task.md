@@ -2,6 +2,12 @@
 
 You are implementing a single task from an implementation plan.
 
+## Execution Contract
+
+- **Expected outcome:** complete the requested task exactly as described, preserving existing behavior outside the task.
+- **Allowed side effects:** modify only task-relevant source, test, documentation, and generated files; do not perform unrelated refactors or destructive git operations.
+- **Verification evidence:** report the exact tests or commands you ran and their results; if verification cannot run, report DONE_WITH_CONCERNS and explain the blocker.
+
 ## Before You Begin
 
 If you have questions about:

@@ -34,6 +34,15 @@ test('dispatching-parallel-agents skill adapts Task dispatch to codex_implement 
   assert.doesNotMatch(skill, /subagent_type/);
 });
 
+test('codex implementation skills are explicit-invocation only', async () => {
+  const skills = await listSkillDirectories();
+  for (const skillName of skills) {
+    const body = await read(`skills/${skillName}/SKILL.md`);
+    if (!body.includes('codex_implement')) continue;
+    assert.match(body, /disable-model-invocation:\s*true/, `${skillName} dispatches Codex implementers and must not auto-invoke`);
+  }
+});
+
 test('using-git-worktrees skill exists with safety verification steps', async () => {
   const skill = await read('skills/using-git-worktrees-codex/SKILL.md');
   assert.match(skill, /name: using-git-worktrees/);
@@ -142,6 +151,24 @@ test('receiving-code-review documents trust hierarchy for feedback sources', asy
     /trust (hierarchy|order|level)|partner\s*>\s*|prioriti[sz]e/i,
     'Source-Specific Handling section must explain the trust hierarchy between sources'
   );
+});
+
+test('receiving-code-review uses review assessment vocabulary for codex_review output', async () => {
+  const skill = await read('skills/receiving-code-review-codex/SKILL.md');
+  const codexSection = skill.split('### From Codex Review (`codex_review` output)')[1]?.split('### From External Reviewers')[0] ?? '';
+
+  assert.match(codexSection, /approved|with_fixes|blocked/);
+  assert.doesNotMatch(codexSection, /DONE_WITH_CONCERNS/);
+});
+
+test('debug prompt output requirements list all required schema keys', async () => {
+  const schema = JSON.parse(await read('schemas/debug-investigation.schema.json'));
+  const prompt = await read('skills/systematic-debugging-codex/prompts/debugging-methodology.md');
+  const outputRequirements = prompt.split('## Output Requirements')[1] ?? '';
+
+  for (const key of schema.required) {
+    assert.match(outputRequirements, new RegExp(key), `debug output requirements must mention ${key}`);
+  }
 });
 
 test('Claude-side-only skills flag upstream-namespace collision in divergence header', async () => {

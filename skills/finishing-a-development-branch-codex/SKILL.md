@@ -169,7 +169,7 @@ For Option 3: Keep worktree.
 - Verify tests before offering options
 - Present exactly 4 options
 - Get typed confirmation for Option 4
-- Clean up worktree for Options 1 and 4 only
+- Clean up worktree for Options 1, 2, and 4 only
 
 ## Integration
 

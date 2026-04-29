@@ -9,7 +9,7 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     env:
-      CLAUDE_CODE_VERSION: 2.1.90
+      CLAUDE_CODE_VERSION: 2.1.123
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

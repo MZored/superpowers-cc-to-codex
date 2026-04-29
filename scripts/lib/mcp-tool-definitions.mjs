@@ -1,11 +1,17 @@
+import { SAFE_TASK_ID_PATTERN } from './codex-state.mjs';
+
 const sharedProperties = {
-  taskId: { type: 'string' },
+  taskId: {
+    type: 'string',
+    pattern: SAFE_TASK_ID_PATTERN,
+    description: 'State-file-safe identifier. Use letters, numbers, dots, underscores, and hyphens; do not use path separators.'
+  },
   workspaceRoot: {
     type: 'string',
     description: 'Absolute path or file:// URI for the repository root to run Codex in.'
   },
   model: { type: 'string' },
-  effort: { type: 'string', enum: ['low', 'medium', 'high'] },
+  effort: { type: 'string', enum: ['minimal', 'low', 'medium', 'high', 'xhigh'] },
   serviceTier: { type: 'string', enum: ['fast'] },
   timeoutMs: { type: 'integer', minimum: 1 },
   includeRawOutput: { type: 'boolean' }
@@ -15,7 +21,7 @@ const standardOutputSchema = {
   type: 'object',
   additionalProperties: false,
   properties: {
-    status: { type: 'string', enum: ['ok', 'partial'] },
+    status: { type: 'string', enum: ['ok', 'partial', 'error'] },
     taskId: { type: ['string', 'null'] },
     sessionId: { type: ['string', 'null'] },
     timedOut: { type: 'boolean' },
@@ -77,7 +83,7 @@ export const TOOL_DEFINITIONS = Object.freeze([
       required: ['taskId']
     },
     outputSchema: standardOutputSchema,
-    defaults: { mode: 'implement', promptTemplate: 'implement-task', model: 'gpt-5.4', effort: 'medium', timeoutMs: 600000 }
+    defaults: { mode: 'implement', promptTemplate: 'implement-task', model: 'auto', effort: 'medium', timeoutMs: 600000 }
   },
   {
     name: 'codex_review',
@@ -125,7 +131,7 @@ export const TOOL_DEFINITIONS = Object.freeze([
       required: ['scope', 'reviewStyle']
     },
     outputSchema: standardOutputSchema,
-    defaults: { mode: 'review', promptTemplate: 'review-brief', model: 'gpt-5.4', effort: 'medium', timeoutMs: 180000 }
+    defaults: { mode: 'review', promptTemplate: 'review-brief', model: 'auto', effort: 'medium', timeoutMs: 180000 }
   },
   {
     name: 'codex_debug',
@@ -177,7 +183,7 @@ export const TOOL_DEFINITIONS = Object.freeze([
       required: ['taskId']
     },
     outputSchema: standardOutputSchema,
-    defaults: { mode: 'resume', promptTemplate: 'fix-task', model: 'gpt-5.4', effort: 'medium', timeoutMs: 600000 }
+    defaults: { mode: 'resume', promptTemplate: 'fix-task', model: 'auto', effort: 'medium', timeoutMs: 600000 }
   }
 ]);
 

@@ -12,7 +12,7 @@ Claude and GPT have complementary strengths:
 | - | - | - |
 | **Best at** | Orchestration, planning, user dialogue, subagent coordination | Fast code generation, debugging, diff review |
 | **Role here** | Controller — owns the conversation thread | Worker — executes bounded tasks |
-| **Speed** | Thoughtful, context-rich | Fast mode available (GPT-5.4 Fast) |
+| **Speed** | Thoughtful, context-rich | Fast mode available for supported Codex models |
 
 The plugin keeps Claude in the driver's seat for design decisions and workflow control, while delegating execution-heavy work to Codex — getting the best of both worlds.
 
@@ -30,7 +30,7 @@ User ↔ Claude (controller)
          │   ├─ codex_branch_analysis  branch readiness check
          │   └─ codex_resume        resume existing thread
          │
-         └─ Codex CLI      GPT-5.4 / GPT-5.4-mini (configurable)
+         └─ Codex CLI      auto-selected full model / GPT-5.4-mini (configurable)
 ```
 
 ## Quick Start
@@ -51,7 +51,7 @@ Want the original Superpowers without Codex delegation? See [obra/superpowers](h
 
 ```json
 {
-  "model": "gpt-5.4",
+  "model": "auto",
   "modelMini": "gpt-5.4-mini",
   "effort": "medium",
   "serviceTier": "fast"
@@ -60,10 +60,10 @@ Want the original Superpowers without Codex delegation? See [obra/superpowers](h
 
 | Key | Description | Default |
 |-----|-------------|---------|
-| `model` | Model for implementation, review, resume | `gpt-5.4` |
+| `model` | Model for implementation, review, resume. Use `auto` to let Codex CLI choose the recommended model for the authenticated account. | `auto` |
 | `modelMini` | Model for research, planning, debug, branch analysis | `gpt-5.4-mini` |
-| `effort` | Reasoning effort: `low`, `medium`, `high` | per-tool |
-| `serviceTier` | Set to `"fast"` for GPT Fast mode (requires ChatGPT auth) | — |
+| `effort` | Reasoning effort: `minimal`, `low`, `medium`, `high`, `xhigh` | per-tool |
+| `serviceTier` | Set to `"fast"` for GPT Fast mode (requires ChatGPT auth) | `fast` |
 
 Resolution: explicit MCP args → project config → tool defaults. Every parameter can be overridden per-call.
 

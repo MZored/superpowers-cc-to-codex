@@ -69,6 +69,20 @@ test('validates enum values — rejects invalid effort', async () => {
   assert.equal(config.effort, undefined, 'invalid effort should be stripped');
 });
 
+test('accepts current Codex reasoning effort values', async () => {
+  for (const effort of ['minimal', 'xhigh']) {
+    const root = await mkdtemp(join(tmpdir(), 'sp-config-'));
+    await mkdir(join(root, '.claude'), { recursive: true });
+    await writeFile(
+      join(root, '.claude', 'codex-defaults.json'),
+      JSON.stringify({ effort })
+    );
+
+    const config = await loadProjectConfig(root);
+    assert.equal(config.effort, effort);
+  }
+});
+
 test('validates enum values — rejects invalid serviceTier', async () => {
   const root = await mkdtemp(join(tmpdir(), 'sp-config-'));
   await mkdir(join(root, '.claude'), { recursive: true });
@@ -109,7 +123,7 @@ test('scaffolds config when file is missing', async () => {
   assert.equal(result, true);
 
   const content = JSON.parse(await readFile(join(root, '.claude', 'codex-defaults.json'), 'utf8'));
-  assert.equal(content.model, 'gpt-5.4');
+  assert.equal(content.model, 'auto');
   assert.equal(content.modelMini, 'gpt-5.4-mini');
   assert.equal(content.effort, 'medium');
   assert.equal(content.serviceTier, 'fast');
@@ -141,7 +155,7 @@ test('scaffolded config round-trips through loadProjectConfig', async () => {
   await scaffoldProjectConfig(root);
 
   const config = await loadProjectConfig(root);
-  assert.equal(config.model, 'gpt-5.4');
+  assert.equal(config.model, 'auto');
   assert.equal(config.modelMini, 'gpt-5.4-mini');
   assert.equal(config.effort, 'medium');
   assert.equal(config.serviceTier, 'fast');

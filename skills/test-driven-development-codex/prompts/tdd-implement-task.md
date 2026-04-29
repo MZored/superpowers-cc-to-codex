@@ -2,6 +2,12 @@
 
 You are implementing a single task using strict Test-Driven Development.
 
+## Execution Contract
+
+- **Expected outcome:** implement the requested behavior through red-green-refactor without changing unrelated behavior.
+- **Allowed side effects:** modify only task-relevant source, test, documentation, and generated files; do not perform unrelated refactors or destructive git operations.
+- **Verification evidence:** report the failing-then-passing test evidence for each behavior plus the final full-suite result; if verification cannot run, report DONE_WITH_CONCERNS and explain the blocker.
+
 ## The Iron Law
 
 ```
@@ -71,6 +77,7 @@ When done, report:
 - **Status:** DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
 - What you implemented and the red-green-refactor progression
 - Tests written and their results (show the failing-then-passing evidence)
+- `red_green_evidence`: one entry per behavior with the failing RED command/result and passing GREEN command/result
 - Files changed
 - Self-review findings (if any)
 - Any concerns about test coverage or implementation

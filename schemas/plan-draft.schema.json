@@ -2,8 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "additionalProperties": false,
-  "required": ["files", "tasks", "test_commands", "commit_boundaries"],
+  "required": ["plan_markdown", "files", "tasks", "test_commands", "commit_boundaries"],
   "properties": {
+    "plan_markdown": { "type": "string" },
     "files": { "type": "array", "items": { "type": "string" } },
     "tasks": { "type": "array", "items": { "type": "string" } },
     "test_commands": { "type": "array", "items": { "type": "string" } },

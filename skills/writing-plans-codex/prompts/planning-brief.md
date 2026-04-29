@@ -2,6 +2,16 @@
 
 Transform the approved design into a detailed implementation plan.
 
+## Output Contract
+
+Return JSON matching `schemas/plan-draft.schema.json`.
+Put the complete markdown implementation plan in `plan_markdown`.
+Also fill the structured summary fields:
+- `files`: exact files the plan creates or modifies
+- `tasks`: task titles in execution order
+- `test_commands`: exact verification commands
+- `commit_boundaries`: suggested commit boundaries
+
 ## Plan Header
 
 Every plan MUST start with:
@@ -96,4 +106,4 @@ Every step must contain the actual content an engineer needs. These are **plan f
 - Exact commands with expected output
 - DRY, YAGNI, TDD, frequent commits
 
-Return JSON matching `schemas/plan-draft.schema.json`.
+Return only the JSON object. Do not wrap it in markdown fences.

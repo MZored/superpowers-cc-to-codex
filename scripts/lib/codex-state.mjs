@@ -1,14 +1,24 @@
+import { randomUUID } from 'node:crypto';
 import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const defaultFs = { mkdir, writeFile, rename };
+export const SAFE_TASK_ID_PATTERN = '^[A-Za-z0-9][A-Za-z0-9._-]*$';
+const SAFE_TASK_ID = new RegExp(SAFE_TASK_ID_PATTERN);
 
 function stateDir(workspaceRoot) {
   return join(workspaceRoot, '.claude', 'state', 'codex');
 }
 
 function stateFile(workspaceRoot, taskId) {
+  assertSafeTaskId(taskId);
   return join(stateDir(workspaceRoot), `${taskId}.json`);
+}
+
+export function assertSafeTaskId(taskId) {
+  if (typeof taskId !== 'string' || !SAFE_TASK_ID.test(taskId)) {
+    throw new Error(`unsafe taskId: ${taskId}`);
+  }
 }
 
 /**
@@ -21,7 +31,7 @@ function stateFile(workspaceRoot, taskId) {
 export async function saveTaskState(workspaceRoot, taskId, state, { fs = defaultFs } = {}) {
   await fs.mkdir(stateDir(workspaceRoot), { recursive: true });
   const target = stateFile(workspaceRoot, taskId);
-  const tempPath = `${target}.tmp`;
+  const tempPath = `${target}.${process.pid}.${randomUUID()}.tmp`;
   await fs.writeFile(tempPath, JSON.stringify(state, null, 2) + '\n', 'utf8');
   await fs.rename(tempPath, target);
 }

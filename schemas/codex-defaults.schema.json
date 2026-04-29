@@ -7,7 +7,7 @@
   "properties": {
     "model": {
       "type": "string",
-      "description": "Default model for full-capability tools (implement, review, resume)."
+      "description": "Default model for full-capability tools (implement, review, resume). Use 'auto' to let Codex CLI select the recommended model for the authenticated account."
     },
     "modelMini": {
       "type": "string",
@@ -15,7 +15,7 @@
     },
     "effort": {
       "type": "string",
-      "enum": ["low", "medium", "high"],
+      "enum": ["minimal", "low", "medium", "high", "xhigh"],
       "description": "Default reasoning effort level."
     },
     "serviceTier": {

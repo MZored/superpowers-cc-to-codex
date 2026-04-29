@@ -26,7 +26,7 @@ test('marketplace manifest includes a plugin-level description', async () => {
 
 test('validation workflow pins Claude Code to the locally verified version', async () => {
   const workflow = await read('.github/workflows/validate.yml');
-  assert.match(workflow, /CLAUDE_CODE_VERSION:\s*2\.1\.90/);
+  assert.match(workflow, /CLAUDE_CODE_VERSION:\s*2\.1\.123/);
   assert.match(workflow, /@anthropic-ai\/claude-code@\$\{\{ env\.CLAUDE_CODE_VERSION \}\}/);
 });
 

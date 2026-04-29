@@ -30,7 +30,9 @@ export async function dispatchWorkflowTool({
   const cwd = selectWorkspaceRoot({ workspaceRoot: args.workspaceRoot, roots });
   const scaffoldedWorkspaces = extra.scaffoldedWorkspaces;
 
-  if (scaffoldedWorkspaces && !scaffoldedWorkspaces.has(cwd)) {
+  if (tool.annotations?.readOnlyHint) {
+    // Read-only tools must not create project config files as a side effect.
+  } else if (scaffoldedWorkspaces && !scaffoldedWorkspaces.has(cwd)) {
     scaffoldedWorkspaces.add(cwd);
     await scaffoldProjectConfig(cwd);
   } else if (!scaffoldedWorkspaces) {

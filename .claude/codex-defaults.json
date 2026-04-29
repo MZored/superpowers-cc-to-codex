@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/codex-defaults.schema.json",
-  "model": "gpt-5.4",
+  "model": "auto",
   "modelMini": "gpt-5.4-mini",
   "effort": "medium",
   "serviceTier": "fast"

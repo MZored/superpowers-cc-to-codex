@@ -64,3 +64,19 @@ test('operator docs cover codex state inspection and workflow examples', async (
   assert.match(readme, /notifications\/progress/);
   assert.match(readme, /SUPERPOWERS_CODEX_EXPERIMENTAL_TASKS=implement-resume/);
 });
+
+test('README serviceTier default matches the scaffolded sample config', async () => {
+  const readme = await read('README.md');
+  assert.match(
+    readme,
+    /\|\s*`serviceTier`\s*\|[^\n]*\|\s*`fast`\s*\|/,
+    'README config table should document the generated serviceTier default'
+  );
+});
+
+test('branch finishing cleanup policy is consistent for PR option', async () => {
+  const skill = await read('skills/finishing-a-development-branch-codex/SKILL.md');
+  assert.match(skill, /Option 2: Push and Create PR[\s\S]*Then: Cleanup worktree \(Step 5\)/);
+  assert.match(skill, /For Options 1, 2, 4/);
+  assert.match(skill, /Clean up worktree for Options 1, 2, and 4 only/);
+});

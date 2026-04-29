@@ -2,7 +2,7 @@ import { readFile, writeFile, mkdir, access } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const ALLOWED_KEYS = ['model', 'modelMini', 'effort', 'serviceTier'];
-const EFFORT_VALUES = ['low', 'medium', 'high'];
+const EFFORT_VALUES = ['minimal', 'low', 'medium', 'high', 'xhigh'];
 const SERVICE_TIER_VALUES = ['fast'];
 
 /**
@@ -52,7 +52,7 @@ export async function loadProjectConfig(workspaceRoot) {
 }
 
 const SCAFFOLD_DEFAULTS = {
-  model: 'gpt-5.4',
+  model: 'auto',
   modelMini: 'gpt-5.4-mini',
   effort: 'medium',
   serviceTier: 'fast'
