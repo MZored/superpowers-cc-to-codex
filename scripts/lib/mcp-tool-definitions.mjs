@@ -10,8 +10,15 @@ const sharedProperties = {
     type: 'string',
     description: 'Absolute path or file:// URI for the repository root to run Codex in.'
   },
-  model: { type: 'string' },
-  effort: { type: 'string', enum: ['minimal', 'low', 'medium', 'high', 'xhigh'] },
+  model: {
+    type: 'string',
+    description: 'Override the Codex model. Use "auto" (default) to defer to your ~/.codex/config.toml.'
+  },
+  effort: {
+    type: 'string',
+    enum: ['auto', 'minimal', 'low', 'medium', 'high', 'xhigh'],
+    description: 'Reasoning effort. Use "auto" (default) to defer to your ~/.codex/config.toml.'
+  },
   serviceTier: { type: 'string', enum: ['fast'] },
   timeoutMs: { type: 'integer', minimum: 1 },
   includeRawOutput: { type: 'boolean' }
@@ -49,7 +56,7 @@ export const TOOL_DEFINITIONS = Object.freeze([
       required: ['prompt']
     },
     outputSchema: standardOutputSchema,
-    defaults: { mode: 'research', promptTemplate: 'research-brief', model: 'gpt-5.4-mini', effort: 'low', timeoutMs: 120000 }
+    defaults: { mode: 'research', promptTemplate: 'research-brief', model: 'auto', effort: 'auto', timeoutMs: 120000 }
   },
   {
     name: 'codex_plan',
@@ -66,7 +73,7 @@ export const TOOL_DEFINITIONS = Object.freeze([
       required: ['prompt']
     },
     outputSchema: standardOutputSchema,
-    defaults: { mode: 'plan', promptTemplate: 'planning-brief', model: 'gpt-5.4-mini', effort: 'medium', timeoutMs: 180000 }
+    defaults: { mode: 'plan', promptTemplate: 'planning-brief', model: 'auto', effort: 'auto', timeoutMs: 180000 }
   },
   {
     name: 'codex_implement',
@@ -83,7 +90,7 @@ export const TOOL_DEFINITIONS = Object.freeze([
       required: ['taskId']
     },
     outputSchema: standardOutputSchema,
-    defaults: { mode: 'implement', promptTemplate: 'implement-task', model: 'auto', effort: 'medium', timeoutMs: 600000 }
+    defaults: { mode: 'implement', promptTemplate: 'implement-task', model: 'auto', effort: 'auto', timeoutMs: 600000 }
   },
   {
     name: 'codex_review',
@@ -131,7 +138,7 @@ export const TOOL_DEFINITIONS = Object.freeze([
       required: ['scope', 'reviewStyle']
     },
     outputSchema: standardOutputSchema,
-    defaults: { mode: 'review', promptTemplate: 'review-brief', model: 'auto', effort: 'medium', timeoutMs: 180000 }
+    defaults: { mode: 'review', promptTemplate: 'review-brief', model: 'auto', effort: 'auto', timeoutMs: 180000 }
   },
   {
     name: 'codex_debug',
@@ -148,7 +155,7 @@ export const TOOL_DEFINITIONS = Object.freeze([
       required: ['prompt']
     },
     outputSchema: standardOutputSchema,
-    defaults: { mode: 'research', promptTemplate: 'investigation-brief', model: 'gpt-5.4-mini', effort: 'medium', timeoutMs: 180000 }
+    defaults: { mode: 'research', promptTemplate: 'investigation-brief', model: 'auto', effort: 'auto', timeoutMs: 180000 }
   },
   {
     name: 'codex_branch_analysis',
@@ -165,7 +172,7 @@ export const TOOL_DEFINITIONS = Object.freeze([
       required: ['prompt']
     },
     outputSchema: standardOutputSchema,
-    defaults: { mode: 'research', promptTemplate: 'branch-analysis-brief', model: 'gpt-5.4-mini', effort: 'low', timeoutMs: 120000 }
+    defaults: { mode: 'research', promptTemplate: 'branch-analysis-brief', model: 'auto', effort: 'auto', timeoutMs: 120000 }
   },
   {
     name: 'codex_resume',
@@ -183,7 +190,7 @@ export const TOOL_DEFINITIONS = Object.freeze([
       required: ['taskId']
     },
     outputSchema: standardOutputSchema,
-    defaults: { mode: 'resume', promptTemplate: 'fix-task', model: 'auto', effort: 'medium', timeoutMs: 600000 }
+    defaults: { mode: 'resume', promptTemplate: 'fix-task', model: 'auto', effort: 'auto', timeoutMs: 600000 }
   }
 ]);
 

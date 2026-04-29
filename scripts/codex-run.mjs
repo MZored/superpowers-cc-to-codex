@@ -48,7 +48,8 @@ function buildCommonOptions({ model, effort, serviceTier, authProvider }) {
     options.push('-m', model);
   }
 
-  if (effort) {
+  // 'auto' (and empty) means: defer to ~/.codex/config.toml. Don't pass -c.
+  if (effort && effort !== 'auto') {
     options.push('-c', `model_reasoning_effort="${effort}"`);
   }
 

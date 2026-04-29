@@ -2,7 +2,7 @@ import { readFile, writeFile, mkdir, access } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const ALLOWED_KEYS = ['model', 'modelMini', 'effort', 'serviceTier'];
-const EFFORT_VALUES = ['minimal', 'low', 'medium', 'high', 'xhigh'];
+const EFFORT_VALUES = ['auto', 'minimal', 'low', 'medium', 'high', 'xhigh'];
 const SERVICE_TIER_VALUES = ['fast'];
 
 /**
@@ -51,10 +51,14 @@ export async function loadProjectConfig(workspaceRoot) {
   return config;
 }
 
+// Defaults defer non-trivial knobs to the user's ~/.codex/config.toml via the
+// 'auto' sentinel. The plugin only opts into one thing on its own:
+// service_tier=fast for ChatGPT-account users (it's billing-impacting and
+// Codex CLI does not enable it by default).
 const SCAFFOLD_DEFAULTS = {
   model: 'auto',
-  modelMini: 'gpt-5.4-mini',
-  effort: 'medium',
+  modelMini: 'auto',
+  effort: 'auto',
   serviceTier: 'fast'
 };
 

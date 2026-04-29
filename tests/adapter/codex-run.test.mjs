@@ -102,6 +102,50 @@ test('auto model delegates model choice to Codex CLI defaults', () => {
   assert.equal(invocation.command.includes('auto'), false);
 });
 
+test('effort="auto" delegates reasoning effort to Codex CLI / user config', () => {
+  const invocation = buildInvocation({
+    mode: 'implement',
+    cwd: '/repo',
+    taskId: 'task-auto-effort',
+    model: 'auto',
+    effort: 'auto',
+    schemaPath: 'schemas/implementer-result.schema.json',
+    promptFile: 'skills/subagent-driven-development-codex/prompts/implement-task.md'
+  });
+
+  const joined = invocation.command.join(' ');
+  assert.equal(/model_reasoning_effort/.test(joined), false, 'auto effort must not pass -c flag');
+});
+
+test('effort=undefined leaves Codex CLI / user config to choose effort', () => {
+  const invocation = buildInvocation({
+    mode: 'implement',
+    cwd: '/repo',
+    taskId: 'task-no-effort',
+    model: 'auto',
+    schemaPath: 'schemas/implementer-result.schema.json',
+    promptFile: 'skills/subagent-driven-development-codex/prompts/implement-task.md'
+  });
+
+  const joined = invocation.command.join(' ');
+  assert.equal(/model_reasoning_effort/.test(joined), false, 'absent effort must not pass -c flag');
+});
+
+test('explicit effort still flows through (e.g. user picks xhigh)', () => {
+  const invocation = buildInvocation({
+    mode: 'implement',
+    cwd: '/repo',
+    taskId: 'task-xhigh',
+    model: 'auto',
+    effort: 'xhigh',
+    schemaPath: 'schemas/implementer-result.schema.json',
+    promptFile: 'skills/subagent-driven-development-codex/prompts/implement-task.md'
+  });
+
+  const joined = invocation.command.join(' ');
+  assert.match(joined, /model_reasoning_effort="xhigh"/);
+});
+
 test('runCodexWorkflow rejects unsafe taskId before executor runs', async () => {
   let executed = false;
 

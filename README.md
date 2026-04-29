@@ -30,7 +30,7 @@ User ↔ Claude (controller)
          │   ├─ codex_branch_analysis  branch readiness check
          │   └─ codex_resume        resume existing thread
          │
-         └─ Codex CLI      auto-selected full model / GPT-5.4-mini (configurable)
+         └─ Codex CLI      respects ~/.codex/config.toml (model + effort) by default
 ```
 
 ## Quick Start
@@ -47,25 +47,31 @@ Want the original Superpowers without Codex delegation? See [obra/superpowers](h
 
 ## Configuration
 
-`.claude/codex-defaults.json` is automatically created with sensible defaults on first use. Customize it:
+`.claude/codex-defaults.json` is automatically created on first use. By default it defers every model/effort decision to your `~/.codex/config.toml` and only opts into the ChatGPT-account `fast` service tier:
 
 ```json
 {
   "model": "auto",
-  "modelMini": "gpt-5.4-mini",
-  "effort": "medium",
+  "modelMini": "auto",
+  "effort": "auto",
   "serviceTier": "fast"
 }
 ```
 
 | Key | Description | Default |
 |-----|-------------|---------|
-| `model` | Model for implementation, review, resume. Use `auto` to let Codex CLI choose the recommended model for the authenticated account. | `auto` |
-| `modelMini` | Model for research, planning, debug, branch analysis | `gpt-5.4-mini` |
-| `effort` | Reasoning effort: `minimal`, `low`, `medium`, `high`, `xhigh` | per-tool |
-| `serviceTier` | Set to `"fast"` for GPT Fast mode (requires ChatGPT auth) | `fast` |
+| `model` | Model for implementation, review, resume. `auto` defers to `~/.codex/config.toml`. | `auto` |
+| `modelMini` | Model for research, planning, debug, branch analysis. Falls back to `model` if not set. `auto` defers to `~/.codex/config.toml`. | `auto` |
+| `effort` | Reasoning effort: `auto`, `minimal`, `low`, `medium`, `high`, `xhigh`. `auto` defers to `~/.codex/config.toml`. | `auto` |
+| `serviceTier` | Set to `"fast"` for GPT Fast mode (requires ChatGPT auth). | `fast` |
 
-Resolution: explicit MCP args → project config → tool defaults. Every parameter can be overridden per-call.
+Resolution: explicit MCP args → project config → tool defaults. `auto` is a sentinel that means "do not pass `-m` / `-c model_reasoning_effort` to Codex CLI", so your global Codex configuration wins. Per-call overrides always trump these defaults.
+
+Example — pin reasoning effort to `xhigh` for this project regardless of your global Codex config:
+
+```json
+{ "effort": "xhigh", "serviceTier": "fast" }
+```
 
 ## Skills
 

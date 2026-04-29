@@ -58,9 +58,20 @@ test('tool definitions expose all seven workflow tools', () => {
   );
 });
 
-test('tool definitions expose current Codex reasoning effort values', () => {
+test('tool definitions expose current Codex reasoning effort values plus auto sentinel', () => {
   for (const tool of TOOL_DEFINITIONS) {
-    assert.deepEqual(tool.inputSchema.properties.effort.enum, ['minimal', 'low', 'medium', 'high', 'xhigh']);
+    assert.deepEqual(
+      tool.inputSchema.properties.effort.enum,
+      ['auto', 'minimal', 'low', 'medium', 'high', 'xhigh'],
+      `${tool.name} should accept 'auto' to defer to ~/.codex/config.toml`
+    );
+  }
+});
+
+test('all tool defaults defer to user config (auto model + auto effort)', () => {
+  for (const tool of TOOL_DEFINITIONS) {
+    assert.equal(tool.defaults.model, 'auto', `${tool.name} default model must be 'auto'`);
+    assert.equal(tool.defaults.effort, 'auto', `${tool.name} default effort must be 'auto'`);
   }
 });
 
