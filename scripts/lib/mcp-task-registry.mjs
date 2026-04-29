@@ -1,19 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { readdir, readFile, rename, writeFile } from 'node:fs/promises';
-import { isAbsolute, join } from 'node:path';
+import { join } from 'node:path';
+import { assertSafeTaskId } from './codex-state.mjs';
 import { ensurePluginDataSubdir, resolvePluginDataDir } from './plugin-data.mjs';
 
 const TASK_SUBDIR = 'mcp-tasks';
-const SAFE_TASK_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
 function taskPath(dir, taskId) {
   return join(dir, `${taskId}.json`);
-}
-
-function assertSafeTaskId(taskId) {
-  if (typeof taskId !== 'string' || !SAFE_TASK_ID.test(taskId) || taskId.includes('/') || taskId.includes('\\') || isAbsolute(taskId)) {
-    throw new Error(`unsafe taskId: "${taskId}"`);
-  }
 }
 
 async function readTaskRecord(dir, taskId) {
