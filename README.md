@@ -129,7 +129,7 @@ Transient network failures are retried once. If the response includes `taskId` a
 
 ### Authentication failure
 
-Run `codex login`, then rerun `npm run doctor`. In CI, run `codex login` with the auth flow documented for your installed `codex` CLI version, then verify with `npm run doctor`.
+Run `codex login`, then rerun `npm run doctor`. In CI, follow the auth flow documented for your installed `codex` CLI version and verify with `npm run doctor`.
 
 ### Model not available
 
