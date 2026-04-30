@@ -139,11 +139,11 @@ test('handler passes signal, spawn, and stream callbacks to runWorkflow and forw
   assert.equal(typeof capturedOnSpawn, 'function', 'onSpawn should be a function');
   assert.equal(typeof capturedOnStdoutChunk, 'function', 'onStdoutChunk should be a function');
   assert.equal(typeof capturedOnStderrChunk, 'function', 'onStderrChunk should be a function');
-  const codexLogPayloads = logPayloads.filter((payload) =>
-    ['codex.exec', 'codex.stderr'].includes(payload?.logger)
-  );
-  assert.equal(codexLogPayloads[0]?.logger, 'codex.exec');
-  assert.equal(codexLogPayloads[1]?.logger, 'codex.stderr');
+  const execIdx = logPayloads.findIndex((p) => p?.logger === 'codex.exec');
+  const stderrIdx = logPayloads.findIndex((p) => p?.logger === 'codex.stderr');
+  assert.ok(execIdx >= 0, 'expected codex.exec log entry');
+  assert.ok(stderrIdx >= 0, 'expected codex.stderr log entry');
+  assert.ok(execIdx < stderrIdx, 'codex.exec should arrive before codex.stderr');
 });
 
 // ---------------------------------------------------------------------------

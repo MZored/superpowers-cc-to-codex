@@ -40,8 +40,8 @@ export function createRequestRegistry() {
  *   - Partial result extraction from thrown errors (for timeout salvage)
  *
  * @param {object} opts
- * @param {string}   opts.requestId          - Reserved for external registry integration in
- *                                              Task 4; not consumed internally.
+ * @param {string}   opts.requestId          - Identifier surfaced on lifecycle events emitted
+ *                                              via eventEmitter.
  * @param {number}   [opts.timeoutMs]        - Hard timeout in ms; 0/undefined = no timeout
  * @param {string}   [opts.progressToken]    - MCP progress token; triggers progress notifications
  * @param {Function} [opts.sendProgress]     - async (payload) => void; called every PROGRESS_INTERVAL_MS

@@ -74,16 +74,17 @@ function buildToolResult(name, runtimeResult) {
 function buildErrorResult(name, error, taskId = null) {
   const effectiveTaskId = error.taskId ?? taskId;
   const sessionId = error.sessionId ?? null;
+  const displayName = name ? name.replace(/_/g, ' ') : 'tool';
   const resumeHint =
     effectiveTaskId && sessionId
-      ? `Session saved as taskId=${effectiveTaskId} (sessionId=${sessionId}). Resume with codex_resume to continue.\n\n`
+      ? `Session saved as taskId=${effectiveTaskId} (sessionId=${sessionId}). Resume with codex_resume(taskId="${effectiveTaskId}") to continue.\n\n`
       : '';
 
   return {
     content: [
       {
         type: 'text',
-        text: `${resumeHint}${error.message}`
+        text: `${resumeHint}${displayName} failed: ${error.message}`
       }
     ],
     structuredContent: {
@@ -270,20 +271,7 @@ export async function createMcpServer({
     scaffoldedWorkspaces
   });
 
-  const handleToolCall = async (request, extra = {}) => {
-    try {
-      const { name, taskId, runtimeResult } = await dispatcher.dispatch(request, extra);
-      return buildToolResult(name, { ...runtimeResult, taskId });
-    } catch (error) {
-      return buildErrorResult(
-        request.params?.name ?? 'unhandled_tool',
-        error,
-        request.params?.arguments?.taskId ?? null
-      );
-    }
-  };
-
-  const executeTool = async (request, extra = {}) => {
+  const runDispatch = async (request, extra = {}) => {
     try {
       const { name, taskId, runtimeResult } = await dispatcher.dispatch(request, extra);
       return buildToolResult(name, { ...runtimeResult, taskId });
@@ -300,7 +288,7 @@ export async function createMcpServer({
     featureFlags,
     taskRegistry,
     server,
-    executeTool
+    executeTool: runDispatch
   });
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
@@ -323,7 +311,7 @@ export async function createMcpServer({
       return taskMode.createTask(request, extra);
     }
 
-    return handleToolCall(request, extra);
+    return runDispatch(request, extra);
   });
 
   if (featureFlags.taskMode === 'implement-resume') {
