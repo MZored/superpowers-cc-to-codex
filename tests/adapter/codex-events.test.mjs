@@ -25,6 +25,66 @@ test('redactEvent removes prompt-bearing fields before sinks receive data', () =
   assert.equal(redacted.message, 'safe message');
 });
 
+test('redactEvent recursively scrubs prompt-bearing keys nested in objects', () => {
+  const redacted = redactEvent({
+    type: 'codex.invocation.start',
+    mode: 'implement',
+    context: {
+      prompt: 'secret',
+      nested: { taskText: 'also secret', safe: 'ok' }
+    },
+    history: [
+      { promptBody: 'leaked', keep: 1 },
+      { rawPrompt: 'leaked2', keep: 2 }
+    ]
+  });
+
+  assert.equal('prompt' in redacted.context, false);
+  assert.equal('taskText' in redacted.context.nested, false);
+  assert.equal(redacted.context.nested.safe, 'ok');
+  assert.equal('promptBody' in redacted.history[0], false);
+  assert.equal(redacted.history[0].keep, 1);
+  assert.equal('rawPrompt' in redacted.history[1], false);
+  assert.equal(redacted.history[1].keep, 2);
+});
+
+test('redactEvent leaves non-plain objects unchanged', () => {
+  const date = new Date('2026-04-30T00:00:00.000Z');
+  const buf = Buffer.from('hello');
+  const redacted = redactEvent({
+    type: 'codex.invocation.start',
+    mode: 'implement',
+    when: date,
+    payload: buf
+  });
+
+  assert.equal(redacted.when, date);
+  assert.equal(redacted.payload, buf);
+});
+
+test('createCodexEventEmitter swallows console sink errors', async () => {
+  const mcpRecords = [];
+  const fileWrites = [];
+  const emitter = createCodexEventEmitter({
+    now: () => '2026-04-30T00:00:00.000Z',
+    mcpSink: async (record) => mcpRecords.push(record),
+    logFile: '/tmp/codex-events.jsonl',
+    appendFile: async (file, text) => fileWrites.push({ file, text }),
+    consoleSink: () => {
+      throw new Error('stderr closed');
+    }
+  });
+
+  await emitter.emit({
+    type: 'mcp.request.start',
+    name: 'codex_plan',
+    requestId: 'req-2'
+  });
+
+  assert.equal(mcpRecords.length, 1);
+  assert.equal(fileWrites.length, 1);
+});
+
 test('createCodexEventEmitter validates events and emits sanitized MCP/file/console records', async () => {
   const mcpRecords = [];
   const fileWrites = [];

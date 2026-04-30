@@ -15,7 +15,7 @@ const eventSchema = z.discriminatedUnion('type', [
     effort: z.string().nullish(),
     serviceTier: z.string().nullish(),
     sessionId: z.string().nullish()
-  }).passthrough(),
+  }).loose(),
   z.object({
     type: z.literal('codex.invocation.end'),
     mode: z.string(),
@@ -25,7 +25,7 @@ const eventSchema = z.discriminatedUnion('type', [
     status: z.enum(['ok', 'partial', 'error']),
     exitCode: z.number().int().nullish(),
     retried: z.boolean()
-  }).passthrough(),
+  }).loose(),
   z.object({
     type: z.literal('codex.invocation.error'),
     mode: z.string(),
@@ -34,33 +34,45 @@ const eventSchema = z.discriminatedUnion('type', [
     transient: z.boolean(),
     message: z.string(),
     salvagedSessionId: z.string().nullish()
-  }).passthrough(),
+  }).loose(),
   z.object({
     type: z.literal('mcp.request.start'),
     name: z.string(),
     ...baseEvent
-  }).passthrough(),
+  }).loose(),
   z.object({
     type: z.literal('mcp.request.end'),
     name: z.string(),
     durationMs: z.number().int().nonnegative(),
     status: z.enum(['ok', 'partial', 'error']),
     ...baseEvent
-  }).passthrough(),
+  }).loose(),
   z.object({
     type: z.literal('mcp.request.cancel'),
     name: z.string(),
     ...baseEvent
-  }).passthrough()
+  }).loose()
 ]);
 
 const REDACTED_KEYS = new Set(['prompt', 'taskText', 'promptBody', 'rawPrompt']);
 
+function isPlainObject(value) {
+  if (value === null || typeof value !== 'object') return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
 export function redactEvent(event) {
+  if (Array.isArray(event)) {
+    return event.map(redactEvent);
+  }
+  if (!isPlainObject(event)) {
+    return event;
+  }
   const redacted = {};
   for (const [key, value] of Object.entries(event)) {
     if (REDACTED_KEYS.has(key)) continue;
-    redacted[key] = value;
+    redacted[key] = redactEvent(value);
   }
   return redacted;
 }
@@ -79,7 +91,7 @@ export function eventLevel(event) {
     case 'mcp.request.end':
       return event.status === 'ok' ? 'info' : 'warning';
     default:
-      return 'info';
+      throw new Error(`unhandled event type: ${event.type}`);
   }
 }
 
@@ -124,7 +136,11 @@ export function createCodexEventEmitter({
       }
 
       if (consoleSink) {
-        consoleSink(JSON.stringify(record));
+        try {
+          consoleSink(JSON.stringify(record));
+        } catch {
+          // best-effort; console is a diagnostic surface
+        }
       }
 
       return record;
