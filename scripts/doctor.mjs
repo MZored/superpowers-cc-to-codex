@@ -43,6 +43,90 @@ async function readPluginVersion(pluginRoot) {
   return JSON.parse(raw).version;
 }
 
+function percentile(values, percentileValue) {
+  if (values.length === 0) return null;
+  const sorted = values.slice().sort((left, right) => left - right);
+  const index = Math.min(
+    sorted.length - 1,
+    Math.max(0, Math.ceil((percentileValue / 100) * sorted.length) - 1)
+  );
+  return sorted[index];
+}
+
+export function summarizeCodexEvents(events) {
+  const byMode = {};
+  const durationsByMode = {};
+  const errors = [];
+
+  for (const event of events) {
+    if (!event || typeof event !== 'object') continue;
+    const mode = event.mode;
+    if (!mode) continue;
+
+    byMode[mode] ??= { ok: 0, partial: 0, error: 0, retried: 0 };
+
+    if (event.type === 'codex.invocation.end') {
+      const status = event.status === 'partial' ? 'partial' : event.status === 'error' ? 'error' : 'ok';
+      byMode[mode][status] += 1;
+      if (event.retried) byMode[mode].retried += 1;
+      if (Number.isFinite(event.durationMs)) {
+        durationsByMode[mode] ??= [];
+        durationsByMode[mode].push(event.durationMs);
+      }
+    }
+
+    if (event.type === 'codex.invocation.error') {
+      byMode[mode].error += 1;
+      errors.push({
+        mode,
+        message: event.message ?? '',
+        sessionId: event.salvagedSessionId ?? event.sessionId ?? null
+      });
+    }
+  }
+
+  const durations = {};
+  for (const [mode, values] of Object.entries(durationsByMode)) {
+    durations[mode] = {
+      p50Ms: percentile(values, 50),
+      p95Ms: percentile(values, 95)
+    };
+  }
+
+  return {
+    byMode,
+    lastErrors: errors.slice(-5),
+    durations
+  };
+}
+
+export async function readRecentCodexEvents(logPath, { fs = { readFile }, maxLines = 100 } = {}) {
+  if (!logPath) {
+    return { path: null, readable: false, events: [] };
+  }
+
+  try {
+    const raw = await fs.readFile(logPath, 'utf8');
+    const lines = raw.split(/\r?\n/).filter(Boolean).slice(-maxLines);
+    const events = [];
+    for (const line of lines) {
+      try {
+        events.push(JSON.parse(line));
+      } catch {
+        continue;
+      }
+    }
+    return { path: logPath, readable: true, events };
+  } catch (error) {
+    return {
+      path: logPath,
+      readable: false,
+      error: error.message ?? String(error),
+      events: []
+    };
+  }
+}
+
 /**
  * Run all doctor checks and return a structured result.
  *
@@ -64,7 +148,9 @@ export async function runDoctorChecks({
   pluginRoot = PLUGIN_ROOT_DEFAULT,
   detectRuntime = detectCodexRuntime,
   runCommand = defaultRunCommand,
-  mcpListTools = defaultMcpListTools
+  mcpListTools = defaultMcpListTools,
+  verbose = false,
+  env = process.env
 } = {}) {
   const failures = [];
   const result = {
@@ -76,6 +162,7 @@ export async function runDoctorChecks({
     authProvider: null,
     fastModeAvailable: false,
     tools: { count: 0, names: [] },
+    eventLog: null,
     failures
   };
 
@@ -133,12 +220,23 @@ export async function runDoctorChecks({
     );
   });
 
+  if (verbose) {
+    const recent = await readRecentCodexEvents(env.SUPERPOWERS_CODEX_LOG_FILE);
+    result.eventLog = {
+      path: recent.path,
+      readable: recent.readable,
+      ...(recent.error ? { error: recent.error } : {}),
+      summary: summarizeCodexEvents(recent.events)
+    };
+  }
+
   result.ok = failures.length === 0;
   return result;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const result = await runDoctorChecks({ cwd: process.cwd() });
+  const verbose = process.argv.includes('--verbose');
+  const result = await runDoctorChecks({ cwd: process.cwd(), verbose });
   console.log(JSON.stringify(result, null, 2));
   if (!result.ok) {
     process.exit(1);
