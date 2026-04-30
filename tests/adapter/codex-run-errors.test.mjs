@@ -423,3 +423,69 @@ test('runCodexWorkflow emits an error event with salvaged session id on failure'
   assert.equal(errorEvent.transient, true);
   assert.equal(errorEvent.salvagedSessionId, 'thread-error-event');
 });
+
+test('runCodexWorkflow leaves salvage metadata unset when no thread can be parsed', async () => {
+  let caught;
+
+  try {
+    await runCodexWorkflow({
+      mode: 'implement',
+      cwd: '/repo',
+      taskId: 'task-no-salvage',
+      schemaPath: '/repo/schemas/implementer-result.schema.json',
+      runtimeDetector: async () => ({
+        installed: true,
+        authenticated: true,
+        authProvider: 'chatgpt',
+        version: 'codex-cli 0.125.0'
+      }),
+      executor: async () => {
+        const error = new Error('boom');
+        error.code = 'EPIPE';
+        error.stdout = '';
+        error.stderr = 'broken pipe';
+        throw error;
+      },
+      stateStore: { loadRequired: async () => null, save: async () => {} }
+    });
+  } catch (error) {
+    caught = error;
+  }
+
+  assert.equal(caught.taskId, 'task-no-salvage');
+  assert.equal(caught.sessionId, undefined);
+  assert.equal(caught.salvageReason, undefined);
+});
+
+test('runCodexWorkflow error event reports null salvagedSessionId when no thread is parsed', async () => {
+  const events = [];
+
+  await assert.rejects(
+    runCodexWorkflow({
+      mode: 'implement',
+      cwd: '/repo',
+      taskId: 'task-error-no-salvage',
+      schemaPath: '/repo/schemas/implementer-result.schema.json',
+      eventEmitter: { emit: async (event) => events.push(event) },
+      runtimeDetector: async () => ({
+        installed: true,
+        authenticated: true,
+        authProvider: 'chatgpt',
+        version: 'codex-cli 0.125.0'
+      }),
+      executor: async () => {
+        const error = new Error('boom');
+        error.code = 'EPIPE';
+        error.stdout = '';
+        error.stderr = 'broken pipe';
+        throw error;
+      },
+      stateStore: { loadRequired: async () => null, save: async () => {} }
+    }),
+    /boom/
+  );
+
+  const errorEvent = events.find((event) => event.type === 'codex.invocation.error');
+  assert.equal(errorEvent.salvagedSessionId, null);
+  assert.equal(errorEvent.taskId, 'task-error-no-salvage');
+});

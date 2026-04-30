@@ -377,8 +377,8 @@ export async function runCodexWorkflow({
     type: 'codex.invocation.start',
     mode,
     taskId,
-    model: invocation.model ?? model ?? null,
-    effort: invocation.effort ?? effort ?? null,
+    model: model ?? null,
+    effort: effort ?? null,
     serviceTier: invocation.serviceTier ?? null,
     sessionId: invocation.sessionId ?? null
   });
@@ -424,15 +424,19 @@ export async function runCodexWorkflow({
       validateImplementerResult(parsed.result);
     }
 
-    await eventEmitter.emit({
-      type: 'codex.invocation.error',
-      mode,
-      taskId,
-      errorClass: error.name ?? 'Error',
-      transient: isTransient(error),
-      message: error.message ?? String(error),
-      salvagedSessionId: parsed.threadId ?? null
-    });
+    try {
+      await eventEmitter.emit({
+        type: 'codex.invocation.error',
+        mode,
+        taskId,
+        errorClass: error.name ?? 'Error',
+        transient: isTransient(error),
+        message: error.message ?? String(error),
+        salvagedSessionId: parsed.threadId ?? null
+      });
+    } catch {
+      // Telemetry must never mask the original failure.
+    }
 
     throw error;
   }
@@ -451,16 +455,20 @@ export async function runCodexWorkflow({
 
   const effectiveSessionId = parsed.threadId ?? invocation.sessionId ?? null;
 
-  await eventEmitter.emit({
-    type: 'codex.invocation.end',
-    mode,
-    taskId,
-    sessionId: effectiveSessionId,
-    durationMs: Date.now() - startedAt,
-    status: 'ok',
-    exitCode: execution.code ?? 0,
-    retried
-  });
+  try {
+    await eventEmitter.emit({
+      type: 'codex.invocation.end',
+      mode,
+      taskId,
+      sessionId: effectiveSessionId,
+      durationMs: Date.now() - startedAt,
+      status: 'ok',
+      exitCode: execution.code ?? 0,
+      retried
+    });
+  } catch {
+    // Telemetry must never turn a successful run into a failure.
+  }
 
   if (effectiveSessionId && taskId) {
     await stateStore.save(cwd, taskId, {
