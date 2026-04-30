@@ -34,6 +34,7 @@ import { loadExperimentalFeatures } from './lib/experimental-features.mjs';
 import { createTaskRegistry } from './lib/mcp-task-registry.mjs';
 import { createTaskModeController, isTaskEligibleTool } from './lib/mcp-task-mode.mjs';
 import { dispatchWorkflowTool } from './lib/mcp-workflow-dispatch.mjs';
+import { createCodexEventEmitterFromEnv } from './lib/codex-events.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -71,17 +72,24 @@ function buildToolResult(name, runtimeResult) {
 }
 
 function buildErrorResult(name, error, taskId = null) {
+  const effectiveTaskId = error.taskId ?? taskId;
+  const sessionId = error.sessionId ?? null;
+  const resumeHint =
+    effectiveTaskId && sessionId
+      ? `Session saved as taskId=${effectiveTaskId} (sessionId=${sessionId}). Resume with codex_resume to continue.\n\n`
+      : '';
+
   return {
     content: [
       {
         type: 'text',
-        text: error.message
+        text: `${resumeHint}${error.message}`
       }
     ],
     structuredContent: {
       status: 'error',
-      taskId,
-      sessionId: null,
+      taskId: effectiveTaskId,
+      sessionId,
       timedOut: false,
       result: null,
       assistantText: null,
@@ -89,6 +97,74 @@ function buildErrorResult(name, error, taskId = null) {
       rawOutput: null
     },
     isError: true
+  };
+}
+
+// ---------------------------------------------------------------------------
+// createDispatcher — shared request dispatcher used by tools/call and task mode
+// ---------------------------------------------------------------------------
+
+/**
+ * @param {object} opts
+ * @param {string}   opts.pluginRoot
+ * @param {Function} opts.getRoots
+ * @param {Function} [opts.runWorkflow]
+ * @param {object}   [opts.server]
+ * @param {object}   [opts.requestRegistry]
+ * @param {Set<string>} [opts.scaffoldedWorkspaces]
+ * @param {object}   [opts.eventEmitter]
+ * @returns {{ dispatch(request, extra?): Promise<{name, taskId, runtimeResult}> }}
+ */
+export function createDispatcher({
+  pluginRoot,
+  getRoots,
+  runWorkflow = runCodexWorkflow,
+  server,
+  requestRegistry = createRequestRegistry(),
+  scaffoldedWorkspaces = new Set(),
+  eventEmitter
+}) {
+  const sendProgress = async (payload) => {
+    if (!server) return;
+    await server.notification({
+      method: 'notifications/progress',
+      params: payload
+    });
+  };
+
+  const sendLog = async (payload) => {
+    if (!server) return;
+    await server.sendLoggingMessage(payload);
+  };
+
+  const resolvedEventEmitter =
+    eventEmitter ??
+    createCodexEventEmitterFromEnv({
+      sendLog: server ? sendLog : undefined
+    });
+
+  return {
+    async dispatch(request, extra = {}) {
+      return dispatchWorkflowTool({
+        request,
+        extra: {
+          ...extra,
+          scaffoldedWorkspaces
+        },
+        pluginRoot,
+        getRoots,
+        runWorkflow: (workflowRequest) =>
+          runWorkflow({
+            ...workflowRequest,
+            eventEmitter: resolvedEventEmitter
+          }),
+        requestRegistry,
+        sendProgress,
+        sendLog,
+        eventEmitter: resolvedEventEmitter,
+        exposeCancel: extra.exposeCancel
+      });
+    }
   };
 }
 
@@ -114,35 +190,22 @@ export function createToolCallHandler({
   requestRegistry = createRequestRegistry(),
   scaffoldedWorkspaces = new Set()
 }) {
+  const dispatcher = createDispatcher({
+    pluginRoot,
+    getRoots,
+    runWorkflow,
+    server,
+    requestRegistry,
+    scaffoldedWorkspaces
+  });
+
   return async function handleToolCall(request, extra = {}) {
     try {
-      const { name, taskId, runtimeResult } = await dispatchWorkflowTool({
-        request,
-        extra: {
-          ...extra,
-          scaffoldedWorkspaces
-        },
-        pluginRoot,
-        getRoots,
-        runWorkflow,
-        requestRegistry,
-        sendProgress: async (payload) => {
-          if (!server) return;
-          await server.notification({
-            method: 'notifications/progress',
-            params: payload
-          });
-        },
-        sendLog: async (payload) => {
-          if (!server) return;
-          await server.sendLoggingMessage(payload);
-        }
-      });
-
+      const { name, taskId, runtimeResult } = await dispatcher.dispatch(request, extra);
       return buildToolResult(name, { ...runtimeResult, taskId });
     } catch (error) {
       return buildErrorResult(
-        request.params?.name ?? 'unknown_tool',
+        request.params?.name ?? 'unhandled_tool',
         error,
         request.params?.arguments?.taskId ?? null
       );
@@ -198,7 +261,7 @@ export async function createMcpServer({
     return cachedRoots;
   }
 
-  const handleToolCall = createToolCallHandler({
+  const dispatcher = createDispatcher({
     pluginRoot: PLUGIN_ROOT,
     getRoots: async () => (cachedRoots.length > 0 ? cachedRoots : refreshRoots()),
     runWorkflow,
@@ -207,30 +270,30 @@ export async function createMcpServer({
     scaffoldedWorkspaces
   });
 
-  const executeTool = async (request, extra = {}) => {
-    const { name, taskId, runtimeResult } = await dispatchWorkflowTool({
-      request,
-      extra: {
-        ...extra,
-        scaffoldedWorkspaces
-      },
-      pluginRoot: PLUGIN_ROOT,
-      getRoots: async () => (cachedRoots.length > 0 ? cachedRoots : refreshRoots()),
-      runWorkflow,
-      requestRegistry,
-      sendProgress: async (payload) => {
-        await server.notification({
-          method: 'notifications/progress',
-          params: payload
-        });
-      },
-      sendLog: async (payload) => {
-        await server.sendLoggingMessage(payload);
-      },
-      exposeCancel: extra.exposeCancel
-    });
+  const handleToolCall = async (request, extra = {}) => {
+    try {
+      const { name, taskId, runtimeResult } = await dispatcher.dispatch(request, extra);
+      return buildToolResult(name, { ...runtimeResult, taskId });
+    } catch (error) {
+      return buildErrorResult(
+        request.params?.name ?? 'unhandled_tool',
+        error,
+        request.params?.arguments?.taskId ?? null
+      );
+    }
+  };
 
-    return buildToolResult(name, { ...runtimeResult, taskId });
+  const executeTool = async (request, extra = {}) => {
+    try {
+      const { name, taskId, runtimeResult } = await dispatcher.dispatch(request, extra);
+      return buildToolResult(name, { ...runtimeResult, taskId });
+    } catch (error) {
+      return buildErrorResult(
+        request.params?.name ?? 'unhandled_tool',
+        error,
+        request.params?.arguments?.taskId ?? null
+      );
+    }
   };
 
   const taskMode = createTaskModeController({

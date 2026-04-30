@@ -16,6 +16,7 @@ export async function dispatchWorkflowTool({
   requestRegistry,
   sendProgress,
   sendLog,
+  eventEmitter,
   exposeCancel
 }) {
   const { name, arguments: args = {} } = request.params;
@@ -69,10 +70,12 @@ export async function dispatchWorkflowTool({
 
   const runtimeResult = await runWithMcpRuntime({
     requestId,
+    requestName: name,
     timeoutMs: args.timeoutMs ?? tool.defaults.timeoutMs,
     progressToken,
     sendProgress,
     sendLog,
+    eventEmitter,
     includeRawOutput: args.includeRawOutput ?? false,
     operation: async ({ signal, markSpawned, cancel, onStdoutChunk, onStderrChunk }) => {
       exposeCancel?.(cancel);

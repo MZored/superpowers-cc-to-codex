@@ -221,3 +221,53 @@ test('task mode exposes tasks/get and tasks/cancel for running implement tasks',
   assert.equal(listTasksResult.tasks[0].taskId, taskId);
   assert.equal(listTasksResult.tasks[0].status, 'cancelled');
 });
+
+test('task mode stores resume-aware error results from shared dispatcher', async () => {
+  const taskRegistry = createInMemoryTaskRegistry();
+  const server = await createMcpServer({
+    featureFlags: { taskMode: 'implement-resume' },
+    taskRegistry,
+    runWorkflow: async () => {
+      const error = new Error('codex implement timed out (ETIMEDOUT)');
+      error.taskId = 'task-shared-dispatch';
+      error.sessionId = 'thread-shared-dispatch';
+      error.salvageReason = 'partial-jsonl-thread';
+      throw error;
+    }
+  });
+  const handlers = getHandlers(server);
+
+  const created = CreateTaskResultSchema.parse(
+    await handlers.get('tools/call')(
+      {
+        method: 'tools/call',
+        params: {
+          name: 'codex_implement',
+          arguments: {
+            taskId: 'task-shared-dispatch',
+            prompt: 'Run shared dispatcher.',
+            workspaceRoot: '/repo'
+          },
+          task: { ttl: 60_000 }
+        }
+      },
+      { requestId: 'request-shared-dispatch' }
+    )
+  );
+
+  await waitFor(async () => {
+    const record = await taskRegistry.get(created.task.taskId);
+    return record?.status === 'failed' ? record : null;
+  });
+
+  const payload = CallToolResultSchema.parse(
+    await handlers.get('tasks/result')(
+      { method: 'tasks/result', params: { taskId: created.task.taskId } },
+      {}
+    )
+  );
+
+  assert.equal(payload.isError, true);
+  assert.equal(payload.structuredContent.sessionId, 'thread-shared-dispatch');
+  assert.match(payload.content[0].text, /Resume with codex_resume/);
+});

@@ -5,6 +5,7 @@ import {
   truncateRawOutput,
   truncateStderrTail
 } from './codex-jsonl.mjs';
+import { noopCodexEventEmitter } from './codex-events.mjs';
 
 const PROGRESS_INTERVAL_MS = 20_000;
 
@@ -57,10 +58,12 @@ export function createRequestRegistry() {
  */
 export async function runWithMcpRuntime({
   requestId,
+  requestName = 'mcp.request',
   timeoutMs,
   progressToken,
   sendProgress,
   sendLog,
+  eventEmitter = noopCodexEventEmitter,
   includeRawOutput = false,
   operation
 }) {
@@ -72,6 +75,16 @@ export async function runWithMcpRuntime({
   let timedOut = false;
   let progress = 0;
   let lifecycleState = null;
+
+  try {
+    await eventEmitter.emit({
+      type: 'mcp.request.start',
+      name: requestName,
+      requestId
+    });
+  } catch {
+    // telemetry must never block the request from starting
+  }
 
   async function emitProgress(message) {
     if (!progressToken || !sendProgress) return;
@@ -116,6 +129,20 @@ export async function runWithMcpRuntime({
   });
 
   function cancel(reason = 'cancelled') {
+    try {
+      const cancelEmit = eventEmitter.emit({
+        type: 'mcp.request.cancel',
+        name: requestName,
+        requestId
+      });
+      if (cancelEmit && typeof cancelEmit.catch === 'function') {
+        cancelEmit.catch(() => {
+          // telemetry must never block cancellation
+        });
+      }
+    } catch {
+      // telemetry must never block cancellation
+    }
     controller.abort(reason);
     if (trackedHandle) {
       if (typeof trackedHandle.terminate === 'function') {
@@ -182,7 +209,7 @@ export async function runWithMcpRuntime({
         }
       : parseCodexJsonl(raw);
 
-    return {
+    const runtimeResult = {
       status: 'ok',
       timedOut: false,
       sessionId: parsed.threadId ?? null,
@@ -191,6 +218,20 @@ export async function runWithMcpRuntime({
       stderrTail: truncateStderrTail(executionResult?.stderr ?? executionResult?.stderrTail ?? ''),
       ...(includeRawOutput ? { rawOutput: raw ? truncateRawOutput(raw) : null } : {})
     };
+
+    try {
+      await eventEmitter.emit({
+        type: 'mcp.request.end',
+        name: requestName,
+        requestId,
+        durationMs: Date.now() - startedAt,
+        status: runtimeResult.status
+      });
+    } catch {
+      // telemetry must never turn a successful run into a failure
+    }
+
+    return runtimeResult;
   } catch (error) {
     stdoutParser.end();
     cleanup();
@@ -207,7 +248,7 @@ export async function runWithMcpRuntime({
           : `Codex errored after ${elapsed}s — returning partial result`
       );
 
-      return {
+      const runtimeResult = {
         status: 'partial',
         timedOut,
         sessionId: parsed.threadId ?? null,
@@ -216,6 +257,32 @@ export async function runWithMcpRuntime({
         stderrTail: truncateStderrTail(error.stderr ?? ''),
         ...(includeRawOutput ? { rawOutput: truncateRawOutput(raw) } : {})
       };
+
+      try {
+        await eventEmitter.emit({
+          type: 'mcp.request.end',
+          name: requestName,
+          requestId,
+          durationMs: Date.now() - startedAt,
+          status: runtimeResult.status
+        });
+      } catch {
+        // telemetry must never mask a salvageable result
+      }
+
+      return runtimeResult;
+    }
+
+    try {
+      await eventEmitter.emit({
+        type: 'mcp.request.end',
+        name: requestName,
+        requestId,
+        durationMs: Date.now() - startedAt,
+        status: 'error'
+      });
+    } catch {
+      // telemetry must never mask the original failure
     }
 
     // No parseable data — re-throw so the MCP server can return an error response

@@ -49,3 +49,53 @@ test('runWithMcpRuntime emits lifecycle progress updates and warning logs from m
   assert.equal(logPayloads[0]?.level, 'warning');
   assert.equal(logPayloads[0]?.logger, 'codex.exec');
 });
+
+test('runWithMcpRuntime emits request start and end events', async () => {
+  const events = [];
+
+  const result = await runWithMcpRuntime({
+    requestId: 'req-events',
+    requestName: 'codex_plan',
+    eventEmitter: { emit: async (event) => events.push(event) },
+    operation: async ({ markSpawned }) => {
+      markSpawned({ terminate() {} });
+      return {
+        stdout: '{"type":"thread.started","thread_id":"thread-events"}',
+        stderr: ''
+      };
+    }
+  });
+
+  assert.equal(result.status, 'ok');
+  assert.deepEqual(events.map((event) => event.type), ['mcp.request.start', 'mcp.request.end']);
+  assert.equal(events[0].name, 'codex_plan');
+  assert.equal(events[0].requestId, 'req-events');
+  assert.equal(events[1].status, 'ok');
+});
+
+test('runWithMcpRuntime emits request cancel events', async () => {
+  const events = [];
+
+  await runWithMcpRuntime({
+    requestId: 'req-cancel-event',
+    requestName: 'codex_implement',
+    timeoutMs: 5,
+    eventEmitter: { emit: async (event) => events.push(event) },
+    operation: async ({ markSpawned, signal }) => {
+      markSpawned({ terminate() {} });
+      await new Promise((resolve) => {
+        if (signal.aborted) {
+          resolve();
+          return;
+        }
+        signal.addEventListener('abort', resolve, { once: true });
+      });
+      const error = new Error('deadline exceeded');
+      error.stdout = '{"type":"thread.started","thread_id":"thread-cancel-event"}';
+      error.stderr = '';
+      throw error;
+    }
+  });
+
+  assert.ok(events.some((event) => event.type === 'mcp.request.cancel'));
+});
