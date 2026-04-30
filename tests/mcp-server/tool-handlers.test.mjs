@@ -244,6 +244,28 @@ test('handler throws when workspaceRoot is missing and multiple roots are advert
   assert.match(result.content[0].text, /workspaceRoot/i);
 });
 
+test('handler rejects calls missing required arguments before spawning Codex', async () => {
+  let runWorkflowCalled = false;
+  const handleToolCall = createToolCallHandler({
+    pluginRoot: '/plugin',
+    getRoots: async () => [{ uri: 'file:///repo' }],
+    runWorkflow: async () => {
+      runWorkflowCalled = true;
+      return { stdout: '', stderr: '' };
+    }
+  });
+
+  // codex_implement requires both taskId and prompt — sending only taskId
+  // must fail validation before any subprocess work runs.
+  const result = await handleToolCall(
+    makeRequest('codex_implement', { taskId: 'task-1', workspaceRoot: '/repo' })
+  );
+
+  assert.equal(result.isError, true);
+  assert.match(result.content[0].text, /prompt/i);
+  assert.equal(runWorkflowCalled, false, 'runWorkflow must not run when validation fails');
+});
+
 test('read-only tools do not scaffold project config into the workspace', async () => {
   const root = await mkdtemp(join(tmpdir(), 'sp-readonly-tool-'));
   const handleToolCall = createToolCallHandler({

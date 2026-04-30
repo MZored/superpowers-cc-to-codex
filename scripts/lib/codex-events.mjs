@@ -106,12 +106,23 @@ export function createMcpLoggingSink(sendLog) {
   };
 }
 
+function defaultNotifySinkDisabled({ logFile, error }) {
+  try {
+    process.stderr.write(
+      `[superpowers-cc-to-codex] event log disabled — failed to append to ${logFile}: ${error?.message ?? error}\n`
+    );
+  } catch {
+    // Even stderr writes can fail (closed fd); never let telemetry teardown propagate.
+  }
+}
+
 export function createCodexEventEmitter({
   mcpSink,
   logFile,
   consoleSink,
   appendFile = appendFileDefault,
-  now = () => new Date().toISOString()
+  now = () => new Date().toISOString(),
+  notifySinkDisabled = defaultNotifySinkDisabled
 } = {}) {
   let fileSinkDisabled = false;
 
@@ -130,8 +141,17 @@ export function createCodexEventEmitter({
       if (logFile && !fileSinkDisabled) {
         try {
           await appendFile(logFile, `${JSON.stringify(record)}\n`, 'utf8');
-        } catch {
+        } catch (error) {
           fileSinkDisabled = true;
+          // Surface the failure once so an operator running with
+          // SUPERPOWERS_CODEX_LOG_FILE can see why their log is empty.
+          // Subsequent failures stay silent to avoid console spam.
+          try {
+            notifySinkDisabled({ logFile, error });
+          } catch {
+            // notifier may itself fail (closed fd, throwing override); never
+            // let telemetry teardown propagate into the caller.
+          }
         }
       }
 

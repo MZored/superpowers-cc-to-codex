@@ -75,9 +75,20 @@ hypothesis is confirmed with supporting evidence. Weak evidence = re-investigate
 
 6. **Implement single fix** — ONE change addressing the root cause. No "while I'm here" improvements. No bundled refactoring.
 
-7. **Verify fix** — run tests, confirm resolution, check no regressions.
+7. **Handle implementer status (when Step 5 dispatched `codex_implement`):**
 
-8. **If fix fails:**
+| Status (from `result.status`) | Action |
+|--------|--------|
+| DONE | Proceed to verify (Step 8) |
+| DONE_WITH_CONCERNS | Read `concerns`; verify regardless, then triage the concerns (resume via `codex_resume` if blocking) |
+| NEEDS_CONTEXT | Provide the requested context and resume the same task with `codex_resume(taskId="…")` — do NOT re-dispatch as a new implement call |
+| BLOCKED | Surface the blocker to the user; if it invalidates the root cause, return to Step 2 |
+
+   On error (no `result`), inspect `stderrTail` and use the resume hint in the error message to continue via `codex_resume`.
+
+8. **Verify fix** — run tests, confirm resolution, check no regressions.
+
+9. **If fix fails:**
    - Count attempts. If < 3: return to Step 2, re-investigate with new information
    - **If >= 3: STOP and question the architecture** (see below)
 

@@ -58,6 +58,35 @@ test('tool definitions expose all seven workflow tools', () => {
   );
 });
 
+test('codex_implement requires both taskId and a non-empty prompt', () => {
+  const tool = getToolDefinition('codex_implement');
+  // Without a prompt the dispatcher would silently send an empty implement
+  // task — taskId alone cannot describe what to do on the first call.
+  assert.ok(tool.inputSchema.required.includes('taskId'));
+  assert.ok(tool.inputSchema.required.includes('prompt'));
+  assert.equal(tool.inputSchema.properties.prompt.minLength, 1);
+});
+
+test('codex_resume keeps prompt optional so resumes can continue without new instructions', () => {
+  const tool = getToolDefinition('codex_resume');
+  assert.ok(tool.inputSchema.required.includes('taskId'));
+  assert.equal(tool.inputSchema.required.includes('prompt'), false);
+});
+
+test('one-shot tools require prompt; resume and review (diff-driven) keep it optional', () => {
+  // codex_resume can continue an existing thread with no new prompt.
+  // codex_review derives its task from the diff scope, so prompt is optional.
+  const PROMPT_OPTIONAL = new Set(['codex_resume', 'codex_review']);
+  for (const tool of TOOL_DEFINITIONS) {
+    if (PROMPT_OPTIONAL.has(tool.name)) continue;
+    if (!('prompt' in tool.inputSchema.properties)) continue;
+    assert.ok(
+      tool.inputSchema.required.includes('prompt'),
+      `${tool.name} should require prompt`
+    );
+  }
+});
+
 test('tool definitions expose current Codex reasoning effort values plus auto sentinel', () => {
   for (const tool of TOOL_DEFINITIONS) {
     assert.deepEqual(

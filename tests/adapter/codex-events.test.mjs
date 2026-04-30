@@ -167,3 +167,23 @@ test('invalid events are rejected before any sink receives them', async () => {
   );
   assert.equal(mcpRecords.length, 0);
 });
+
+test('createCodexEventEmitter notifies once when the file sink first fails', async () => {
+  const notifyCalls = [];
+  const emitter = createCodexEventEmitter({
+    now: () => '2026-04-30T00:00:00.000Z',
+    logFile: '/tmp/codex-events.jsonl',
+    appendFile: async () => {
+      throw new Error('disk full');
+    },
+    notifySinkDisabled: (info) => notifyCalls.push(info)
+  });
+
+  await emitter.emit({ type: 'mcp.request.start', name: 'codex_plan', requestId: 'req-1' });
+  await emitter.emit({ type: 'mcp.request.end', name: 'codex_plan', requestId: 'req-1', durationMs: 1, status: 'ok' });
+
+  // Operator gets exactly one signal — first failure surfaces, subsequent ones stay quiet.
+  assert.equal(notifyCalls.length, 1);
+  assert.equal(notifyCalls[0].logFile, '/tmp/codex-events.jsonl');
+  assert.match(notifyCalls[0].error.message, /disk full/);
+});

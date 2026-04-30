@@ -40,10 +40,21 @@ You MUST create a task for each of these items and complete them in order:
   }
 }
 ```
-3. **Review the draft** — Claude reviews the returned plan against the spec (see Self-Review below)
-4. **Fix issues** — edit the plan inline to fix any gaps found in review
-5. **Save plan** — write to `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md` using `plan-template.md` header; commit
-6. **Offer execution** — present the plan to the user and offer to execute via superpowers-cc-to-codex:subagent-driven-development-codex
+3. **Handle status:**
+
+| Status (from `result.status`) | Action |
+|--------|--------|
+| DONE | Proceed to review (Step 4) |
+| DONE_WITH_CONCERNS | Read `concerns`; address them in the inline review or re-dispatch with a sharper prompt before saving |
+| NEEDS_CONTEXT | Gather the requested context (from user or repo) and re-dispatch `codex_plan` with the additional context appended to the prompt |
+| BLOCKED | Surface the blocker to the user; resolve (clarify spec, expand access) before re-dispatching |
+
+   If `codex_plan` errors (no `result`), inspect `stderrTail` and the resume hint in the error message; resume with `codex_resume(taskId="…")` once the cause is resolved.
+
+4. **Review the draft** — Claude reviews the returned plan against the spec (see Self-Review below)
+5. **Fix issues** — edit the plan inline to fix any gaps found in review
+6. **Save plan** — write to `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md` using `plan-template.md` header; commit
+7. **Offer execution** — present the plan to the user and offer to execute via superpowers-cc-to-codex:subagent-driven-development-codex
 
 ## Self-Review (Claude's Job)
 

@@ -27,6 +27,23 @@ export async function dispatchWorkflowTool({
     throw new Error(`Unknown tool: ${name}`);
   }
 
+  // Server-side input validation. The advertised inputSchema is informational
+  // for clients; the SDK does not enforce it on incoming tools/call requests,
+  // so the server must reject calls that omit required fields before any
+  // Codex spawn or workspace resolution work runs.
+  const required = tool.inputSchema?.required ?? [];
+  const missing = required.filter((field) => {
+    const value = args[field];
+    if (value === undefined || value === null) return true;
+    if (typeof value === 'string' && value.length === 0) return true;
+    return false;
+  });
+  if (missing.length > 0) {
+    throw new Error(
+      `${name} requires ${missing.join(', ')}. Provide ${missing.length === 1 ? 'this argument' : 'these arguments'} in the tools/call request.`
+    );
+  }
+
   const roots = await getRoots();
   const cwd = selectWorkspaceRoot({ workspaceRoot: args.workspaceRoot, roots });
   const scaffoldedWorkspaces = extra.scaffoldedWorkspaces;

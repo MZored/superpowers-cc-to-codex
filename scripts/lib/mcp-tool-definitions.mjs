@@ -83,11 +83,11 @@ export const TOOL_DEFINITIONS = Object.freeze([
       type: 'object',
       additionalProperties: false,
       properties: {
-        prompt: { type: 'string' },
+        prompt: { type: 'string', minLength: 1 },
         promptTemplate: { type: 'string', enum: ['default', 'tdd'] },
         ...sharedProperties
       },
-      required: ['taskId']
+      required: ['taskId', 'prompt']
     },
     outputSchema: standardOutputSchema,
     defaults: { mode: 'implement', promptTemplate: 'implement-task', model: 'auto', effort: 'auto', timeoutMs: 600000 }

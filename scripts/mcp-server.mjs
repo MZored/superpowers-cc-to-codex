@@ -253,12 +253,42 @@ export async function createMcpServer({
   const requestRegistry = createRequestRegistry();
   const scaffoldedWorkspaces = new Set();
 
+  // Skip the listRoots round-trip when the client did not advertise the roots
+  // capability — many MCP clients connect without one, and a blocking request
+  // here would stall every tool call until the SDK's default 60s timeout fires.
+  // Use a short bounded timeout for clients that DO advertise roots so a hung
+  // client can't gate workflows indefinitely; fall back to an empty roots list
+  // and log the failure so operators can see it.
+  const ROOTS_REQUEST_TIMEOUT_MS = 5000;
+
   async function refreshRoots() {
+    const clientCaps = typeof server.getClientCapabilities === 'function'
+      ? server.getClientCapabilities()
+      : null;
+    if (!clientCaps?.roots) {
+      cachedRoots = [];
+      return cachedRoots;
+    }
     try {
-      const result = await server.listRoots();
+      const result = await server.listRoots(undefined, { timeout: ROOTS_REQUEST_TIMEOUT_MS });
       cachedRoots = result.roots ?? [];
-    } catch {
-      // Client may not advertise roots capability; leave cachedRoots unchanged.
+    } catch (error) {
+      // Don't let a slow/broken client wedge dispatch — surface the failure
+      // and continue with an empty roots list. The dispatcher will fall back
+      // to the explicit `workspaceRoot` argument or fail with a clear error.
+      try {
+        await server.sendLoggingMessage({
+          level: 'warning',
+          logger: 'superpowers.codex',
+          data: {
+            message: 'roots/list request failed; continuing with empty roots',
+            error: error?.message ?? String(error)
+          }
+        });
+      } catch {
+        // logging is best-effort; never block dispatch on it
+      }
+      cachedRoots = [];
     }
     return cachedRoots;
   }
@@ -358,7 +388,16 @@ export async function createMcpServer({
 // ---------------------------------------------------------------------------
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const server = await createMcpServer();
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+  try {
+    const server = await createMcpServer();
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+  } catch (error) {
+    // Bootstrap failures must surface — a silent unhandled rejection here
+    // leaves the MCP client waiting on an absent server.
+    process.stderr.write(
+      `[superpowers-cc-to-codex] MCP server failed to start: ${error?.stack ?? error?.message ?? error}\n`
+    );
+    process.exit(1);
+  }
 }
