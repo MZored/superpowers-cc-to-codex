@@ -183,3 +183,17 @@ test('runDoctorChecks verbose mode reads SUPERPOWERS_CODEX_LOG_FILE when set', a
   assert.equal(result.eventLog.summary.byMode.research.ok, 1);
   assert.equal(result.eventLog.summary.lastErrors[0].sessionId, 'thread-timeout');
 });
+
+test('readRecentCodexEvents is fail-soft for null and missing paths', async () => {
+  const { readRecentCodexEvents } = await import('../../scripts/doctor.mjs');
+
+  const nullResult = await readRecentCodexEvents(null);
+  assert.equal(nullResult.path, null);
+  assert.equal(nullResult.readable, false);
+  assert.deepEqual(nullResult.events, []);
+
+  const missing = await readRecentCodexEvents('/tmp/sp-doctor-does-not-exist-' + Date.now() + '.jsonl');
+  assert.equal(missing.readable, false);
+  assert.ok(missing.error, 'should surface the fs error message');
+  assert.deepEqual(missing.events, []);
+});
