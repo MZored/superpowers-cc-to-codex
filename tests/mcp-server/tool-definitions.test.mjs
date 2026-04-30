@@ -30,18 +30,18 @@ test('no MCP tool schema uses top-level oneOf/anyOf/allOf', () => {
   }
 });
 
-test('buildWorkflowRequest rejects structured review with uncommitted scope', () => {
+test('buildWorkflowRequest accepts structured review with uncommitted scope', () => {
   const reviewTool = getToolDefinition('codex_review');
-  assert.throws(
-    () =>
-      buildWorkflowRequest({
-        tool: reviewTool,
-        args: { scope: { kind: 'uncommitted' }, reviewStyle: 'structured', prompt: 'x' },
-        cwd: '/repo',
-        pluginRoot: '/plugin'
-      }),
-    /structured reviews require a concrete scope/
-  );
+  const request = buildWorkflowRequest({
+    tool: reviewTool,
+    args: { scope: { kind: 'uncommitted' }, reviewStyle: 'structured', prompt: 'x' },
+    cwd: '/repo',
+    pluginRoot: '/plugin'
+  });
+  assert.equal(request.uncommitted, true);
+  assert.equal(request.base, undefined);
+  assert.equal(request.commit, undefined);
+  assert.equal(request.schemaPath, '/plugin/schemas/code-review.schema.json');
 });
 
 test('read-only tools are annotated as readOnlyHint', () => {

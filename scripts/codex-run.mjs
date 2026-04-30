@@ -22,14 +22,11 @@ function assertSupportedMode(mode) {
   }
 }
 
-function assertValidReviewSelector({ mode, base, commit, uncommitted, schemaPath }) {
+function assertValidReviewSelector({ mode, base, commit, uncommitted }) {
   if (mode !== 'review') return;
   const selectorCount = [Boolean(base), Boolean(commit), Boolean(uncommitted)].filter(Boolean).length;
   if (selectorCount > 1) {
     throw new Error('Choose exactly one review selector: --base, --commit, or --uncommitted.');
-  }
-  if (schemaPath && uncommitted) {
-    throw new Error('Structured review does not support --uncommitted. Use advisory review without --schema.');
   }
 }
 
@@ -82,7 +79,7 @@ export function buildInvocation({
   dryRun = false
 }) {
   assertSupportedMode(mode);
-  assertValidReviewSelector({ mode, base, commit, uncommitted, schemaPath });
+  assertValidReviewSelector({ mode, base, commit, uncommitted });
 
   const { options: commonOptions, effectiveServiceTier } = buildCommonOptions({
     model,
@@ -161,6 +158,7 @@ export function buildInvocation({
     taskText,
     base,
     commit,
+    uncommitted,
     serviceTier: effectiveServiceTier
   };
 }
@@ -247,12 +245,12 @@ export async function buildPrompt(invocation) {
     return composePromptText(template, invocation.taskText);
   }
 
-  if (invocation.uncommitted) {
-    // Advisory uncommitted review: prompt is passed separately to codex review --uncommitted.
+  // Advisory review path: command is `codex review ...`, prompt is passed verbatim.
+  if (invocation.command?.[1] === 'review') {
     return composePromptText(template, invocation.taskText);
   }
 
-  if (!invocation.base && !invocation.commit) {
+  if (!invocation.base && !invocation.commit && !invocation.uncommitted) {
     return template;
   }
 
@@ -260,7 +258,8 @@ export async function buildPrompt(invocation) {
     cwd: invocation.cwd,
     promptBody: composePromptText(template, invocation.taskText) ?? '',
     base: invocation.base,
-    commit: invocation.commit
+    commit: invocation.commit,
+    uncommitted: invocation.uncommitted
   });
 }
 

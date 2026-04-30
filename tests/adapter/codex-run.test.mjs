@@ -227,6 +227,7 @@ test('buildPrompt includes task text for uncommitted advisory review', async () 
   const prompt = await buildPrompt({
     mode: 'review',
     cwd: process.cwd(),
+    command: ['codex', 'review', '--uncommitted'],
     uncommitted: true,
     promptFile: new URL('../fixtures/codex/implement-prompt.md', import.meta.url).pathname,
     taskText: 'Focus on cancellation handling.'

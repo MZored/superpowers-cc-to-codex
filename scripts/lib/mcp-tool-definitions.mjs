@@ -251,11 +251,6 @@ export function buildWorkflowRequest({ tool, args, cwd, pluginRoot, projectConfi
         schemaPath: `${pluginRoot}/schemas/implementer-result.schema.json`
       };
     case 'codex_review':
-      if (args.reviewStyle === 'structured' && args.scope?.kind === 'uncommitted') {
-        throw new Error(
-          'codex_review: structured reviews require a concrete scope (kind "base" or "commit"); "uncommitted" is only valid for advisory reviews.'
-        );
-      }
       return {
         ...request,
         promptFile: `${pluginRoot}/skills/requesting-code-review-codex/prompts/review-brief.md`,

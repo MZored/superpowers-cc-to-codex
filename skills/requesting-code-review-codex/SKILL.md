@@ -88,7 +88,7 @@ Commit review:
 }
 ```
 
-Uncommitted changes (advisory only — structured review is not available for uncommitted scope):
+Uncommitted changes — both `advisory` and `structured` review styles are supported. Structured review synthesizes `git status`, staged/unstaged diffs, and untracked file paths into the prompt:
 ```json
 {
   "tool": "codex_review",
