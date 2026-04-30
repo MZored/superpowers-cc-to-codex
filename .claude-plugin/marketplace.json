@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "superpowers-cc-to-codex",
-  "description": "Marketplace for the superpowers-cc-to-codex plugin \u2014 delegates bounded Superpowers workflow tasks to the Codex CLI.",
+  "description": "Marketplace for the superpowers-cc-to-codex plugin — delegates bounded Superpowers workflow tasks to the Codex CLI.",
   "owner": {
     "name": "mzored"
   },
@@ -9,7 +9,7 @@
     {
       "name": "superpowers-cc-to-codex",
       "description": "Codex-backed fork of seven Superpowers workflows: brainstorming, planning, implementation, code review, debugging, TDD, and branch completion.",
-      "version": "0.6.1",
+      "version": "0.7.0",
       "source": "./",
       "author": {
         "name": "mzored"
