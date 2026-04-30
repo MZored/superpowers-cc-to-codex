@@ -129,7 +129,7 @@ Transient network failures are retried once. If the response includes `taskId` a
 
 ### Authentication failure
 
-Run `codex login`, then rerun `npm run doctor`. In CI, prefer `CODEX_API_KEY` for `codex exec` automation.
+Run `codex login`, then rerun `npm run doctor`. In CI, run `codex login` with the auth flow documented for your installed `codex` CLI version, then verify with `npm run doctor`.
 
 ### Model not available
 
@@ -142,6 +142,8 @@ Pin a supported model in `~/.codex/config.toml` or set `"model": "auto"` in `.cl
 ### Where logs live
 
 Set `SUPERPOWERS_CODEX_LOG_FILE=/absolute/path/codex-events.jsonl` to append sanitized lifecycle events. Run `npm run doctor -- --verbose` to summarize recent events.
+
+The plugin only appends to this file — there is no built-in rotation, truncation, or size cap. Operators running long-lived processes should rotate or truncate the file externally (for example via `logrotate` or a CI cleanup step).
 
 ### Schema validation error
 
