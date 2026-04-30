@@ -115,6 +115,24 @@ test('truncateRawOutput truncates with suffix when input exceeds maxChars', () =
   assert.equal(output, `${'x'.repeat(5)}\n...[truncated 15 chars]`);
 });
 
+test('truncateStderrTail keeps the tail and marks dropped count', async () => {
+  const { truncateStderrTail } = await import('../../scripts/lib/codex-jsonl.mjs');
+  assert.equal(truncateStderrTail('short', 100), 'short');
+  assert.equal(truncateStderrTail('', 100), '');
+  assert.equal(truncateStderrTail(undefined, 100), '');
+  assert.equal(truncateStderrTail(null, 100), '');
+
+  const long = 'a'.repeat(10) + 'b'.repeat(20);
+  const truncated = truncateStderrTail(long, 5);
+  assert.equal(truncated, `[truncated 25 chars]\n...${'b'.repeat(5)}`);
+});
+
+test('truncateStderrTail handles maxChars=0 without falling into the slice(-0) trap', async () => {
+  const { truncateStderrTail } = await import('../../scripts/lib/codex-jsonl.mjs');
+  assert.equal(truncateStderrTail('', 0), '');
+  assert.equal(truncateStderrTail('payload', 0), '[truncated 7 chars]');
+});
+
 test('validateImplementerResult throws for non-object input', () => {
   assert.throws(() => validateImplementerResult(null), /must be a JSON object/);
   assert.throws(() => validateImplementerResult('string'), /must be a JSON object/);

@@ -219,6 +219,47 @@ test('runCodexWorkflow retry policy is injectable for testing', async () => {
   assert.equal(attempts, 1, 'isTransient override must disable retries');
 });
 
+test('isTransientCodexError matches Node socket codes and known upstream patterns', async () => {
+  const { isTransientCodexError } = await import('../../scripts/codex-run.mjs');
+
+  // Node-side socket codes
+  for (const code of ['ECONNRESET', 'ECONNABORTED', 'ETIMEDOUT', 'ENOTFOUND', 'EPIPE', 'EAI_AGAIN']) {
+    const err = new Error('socket');
+    err.code = code;
+    assert.equal(isTransientCodexError(err), true, `${code} must be transient`);
+  }
+
+  // Upstream output patterns
+  for (const stderr of [
+    '503 service unavailable',
+    'service unavailable: try again later',
+    'connection reset by peer',
+    'connection aborted',
+    'upstream timeout while reading response',
+    'received 502 status from upstream'
+  ]) {
+    const err = new Error('upstream');
+    err.stderr = stderr;
+    assert.equal(isTransientCodexError(err), true, `pattern "${stderr}" must be transient`);
+  }
+
+  // Non-transient — must NOT retry
+  for (const stderr of [
+    'invalid_request_error: model not supported',
+    'unauthorized: please run codex login',
+    '400 bad request: malformed prompt',
+    'implementer-result missing required field "summary"'
+  ]) {
+    const err = new Error('user-facing');
+    err.code = 1;
+    err.stderr = stderr;
+    assert.equal(isTransientCodexError(err), false, `pattern "${stderr}" must NOT be transient`);
+  }
+
+  assert.equal(isTransientCodexError(null), false);
+  assert.equal(isTransientCodexError(undefined), false);
+});
+
 test('loadRequiredTaskState explains how to recover from missing state', async () => {
   const root = await mkdtemp(join(tmpdir(), 'sp-codex-errors-'));
 

@@ -126,9 +126,11 @@ export function truncateRawOutput(text, maxChars = 12_000) {
 // most recent bytes — that's where actionable failure signal lives) and
 // prepend a marker noting how much was dropped.
 export function truncateStderrTail(text, maxChars = 4_000) {
-  if (typeof text !== 'string' || text.length <= maxChars) {
-    return text ?? '';
-  }
+  if (typeof text !== 'string') return text ?? '';
+  // Guard against maxChars <= 0: text.slice(-0) is slice(0), which returns
+  // the whole string. Callers passing 0 mean "no tail" — honor that.
+  if (maxChars <= 0) return text.length === 0 ? '' : `[truncated ${text.length} chars]`;
+  if (text.length <= maxChars) return text;
   const dropped = text.length - maxChars;
   return `[truncated ${dropped} chars]\n...${text.slice(-maxChars)}`;
 }
