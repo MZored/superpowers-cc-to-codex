@@ -72,6 +72,17 @@ function buildToolResult(name, runtimeResult) {
   };
 }
 
+// runCommand surfaces failures with `error.message = `${command} ${args.join(' ')} exited with code ${code}``.
+// Because args includes the prompt body, the message can balloon to MBs for
+// long-running implement runs. Cap it before it goes onto the JSON-RPC wire.
+const ERROR_MESSAGE_MAX_CHARS = 600;
+
+function truncateErrorMessage(message) {
+  if (typeof message !== 'string') return String(message ?? '');
+  if (message.length <= ERROR_MESSAGE_MAX_CHARS) return message;
+  return `${message.slice(0, ERROR_MESSAGE_MAX_CHARS)}...[truncated ${message.length - ERROR_MESSAGE_MAX_CHARS} chars]`;
+}
+
 function buildErrorResult(name, error, taskId = null) {
   const effectiveTaskId = error.taskId ?? taskId;
   const sessionId = error.sessionId ?? null;
@@ -85,7 +96,7 @@ function buildErrorResult(name, error, taskId = null) {
     content: [
       {
         type: 'text',
-        text: `${resumeHint}${displayName} failed: ${error.message}`
+        text: `${resumeHint}${displayName} failed: ${truncateErrorMessage(error.message)}`
       }
     ],
     structuredContent: {
@@ -100,6 +111,44 @@ function buildErrorResult(name, error, taskId = null) {
     },
     isError: true
   };
+}
+
+// ---------------------------------------------------------------------------
+// handleCancellationNotification — process notifications/cancelled safely
+// ---------------------------------------------------------------------------
+//
+// The MCP SDK invokes notification handlers synchronously and treats thrown
+// exceptions as transport-level errors. A buggy or already-aborted request
+// entry whose cancel() throws would otherwise propagate into the SDK and
+// could destabilize the server. Cancellation is best-effort — we always evict
+// the registry entry and surface the failure via logging without re-throwing.
+//
+// Exported for unit tests so the resilience contract stays explicit.
+export function handleCancellationNotification({ notification, requestRegistry, sendLog }) {
+  const requestId = String(notification?.params?.requestId ?? '');
+  if (!requestId) return;
+
+  const entry = requestRegistry.get(requestId);
+  if (entry?.cancel) {
+    try {
+      entry.cancel();
+    } catch (error) {
+      try {
+        sendLog?.({
+          level: 'warning',
+          logger: 'superpowers.codex',
+          data: {
+            message: 'cancellation handler threw',
+            requestId,
+            error: error?.message ?? String(error)
+          }
+        });
+      } catch {
+        // logging is best-effort; never re-raise out of a notification handler
+      }
+    }
+  }
+  requestRegistry.delete(requestId);
 }
 
 // ---------------------------------------------------------------------------
@@ -261,7 +310,12 @@ export async function createMcpServer({
   // and log the failure so operators can see it.
   const ROOTS_REQUEST_TIMEOUT_MS = 5000;
 
-  async function refreshRoots() {
+  // Concurrent tool calls (or a tool call racing with roots/list_changed) can
+  // each call refreshRoots() before the cache is populated. Dedupe in-flight
+  // requests so the server sends at most one roots/list per refresh cycle.
+  let pendingRefresh = null;
+
+  async function performRefresh() {
     const clientCaps = typeof server.getClientCapabilities === 'function'
       ? server.getClientCapabilities()
       : null;
@@ -291,6 +345,14 @@ export async function createMcpServer({
       cachedRoots = [];
     }
     return cachedRoots;
+  }
+
+  function refreshRoots() {
+    if (pendingRefresh) return pendingRefresh;
+    pendingRefresh = performRefresh().finally(() => {
+      pendingRefresh = null;
+    });
+    return pendingRefresh;
   }
 
   const dispatcher = createDispatcher({
@@ -365,14 +427,11 @@ export async function createMcpServer({
 
   // notifications/cancelled — cancel in-flight Codex subprocess
   server.setNotificationHandler(CancelledNotificationSchema, (notification) => {
-    const requestId = String(notification.params?.requestId ?? '');
-    if (!requestId) return;
-
-    const entry = requestRegistry.get(requestId);
-    if (entry?.cancel) {
-      entry.cancel();
-    }
-    requestRegistry.delete(requestId);
+    handleCancellationNotification({
+      notification,
+      requestRegistry,
+      sendLog: (payload) => server.sendLoggingMessage(payload).catch(() => {})
+    });
   });
 
   // notifications/roots/list_changed — refresh cached roots from client

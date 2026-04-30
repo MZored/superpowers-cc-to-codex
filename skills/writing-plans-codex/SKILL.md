@@ -40,16 +40,11 @@ You MUST create a task for each of these items and complete them in order:
   }
 }
 ```
-3. **Handle status:**
+3. **Handle the response:**
 
-| Status (from `result.status`) | Action |
-|--------|--------|
-| DONE | Proceed to review (Step 4) |
-| DONE_WITH_CONCERNS | Read `concerns`; address them in the inline review or re-dispatch with a sharper prompt before saving |
-| NEEDS_CONTEXT | Gather the requested context (from user or repo) and re-dispatch `codex_plan` with the additional context appended to the prompt |
-| BLOCKED | Surface the blocker to the user; resolve (clarify spec, expand access) before re-dispatching |
-
-   If `codex_plan` errors (no `result`), inspect `stderrTail` and the resume hint in the error message; resume with `codex_resume(taskId="…")` once the cause is resolved.
+   - **Success (`result` populated):** the draft conforms to `schemas/plan-draft.schema.json` (`plan_markdown`, `files`, `tasks`, `test_commands`, `commit_boundaries`). Proceed to review (Step 4).
+   - **Partial / missing fields:** treat as a draft to refine — re-dispatch `codex_plan` with a sharper prompt naming the missing pieces, or address the gaps inline during review.
+   - **Error (no `result`):** inspect `stderrTail` and the resume hint in the error message; resume with `codex_resume(taskId="…")` once the cause is resolved.
 
 4. **Review the draft** — Claude reviews the returned plan against the spec (see Self-Review below)
 5. **Fix issues** — edit the plan inline to fix any gaps found in review

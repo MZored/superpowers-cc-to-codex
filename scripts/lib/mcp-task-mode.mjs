@@ -84,6 +84,31 @@ export function createTaskModeController({
       const running = { cancelled: false, cancel: null };
       runningTasks.set(taskId, running);
 
+      // Persist a non-cancelled terminal status, but if cancellation arrives
+      // while the save is in flight, re-assert the cancelled state afterwards
+      // so we never leave a stale "completed"/"failed" record overwriting it.
+      const persistTerminal = async (updated) => {
+        if (running.cancelled) return;
+        await taskRegistry.save(updated);
+        if (running.cancelled) {
+          const reasserted = {
+            ...updated,
+            status: 'cancelled',
+            lastUpdatedAt: new Date().toISOString(),
+            statusMessage: 'Task cancelled.',
+            result: null
+          };
+          try {
+            await taskRegistry.save(reasserted);
+          } catch {
+            // Best-effort reassertion — if the registry is wedged, the
+            // cancelTask path will have already attempted to save 'cancelled'.
+          }
+          return;
+        }
+        await emitStatus(updated);
+      };
+
       void (async () => {
         try {
           const result = await executeTool(request, {
@@ -114,24 +139,31 @@ export function createTaskModeController({
             result
           };
 
-          await taskRegistry.save(updated);
-          await emitStatus(updated);
+          await persistTerminal(updated);
         } catch (error) {
-          const latest = await taskRegistry.get(taskId);
-          if (!latest || latest.status === 'cancelled' || running.cancelled) {
-            return;
+          // Best-effort failure reporting. The catch path itself must never
+          // leak an unhandled rejection — the IIFE is fire-and-forget, and a
+          // throw here would crash the server in --unhandled-rejections=strict.
+          try {
+            const latest = await taskRegistry.get(taskId);
+            if (!latest || latest.status === 'cancelled' || running.cancelled) {
+              return;
+            }
+
+            const updated = {
+              ...latest,
+              status: 'failed',
+              lastUpdatedAt: new Date().toISOString(),
+              statusMessage: error instanceof Error ? error.message : String(error),
+              result: null
+            };
+
+            await persistTerminal(updated);
+          } catch {
+            // swallow — the original `error` is already lost to the controller
+            // surface; a secondary registry failure is logged at the registry
+            // layer and must not propagate out of the fire-and-forget IIFE.
           }
-
-          const updated = {
-            ...latest,
-            status: 'failed',
-            lastUpdatedAt: new Date().toISOString(),
-            statusMessage: error instanceof Error ? error.message : String(error),
-            result: null
-          };
-
-          await taskRegistry.save(updated);
-          await emitStatus(updated);
         } finally {
           runningTasks.delete(taskId);
         }

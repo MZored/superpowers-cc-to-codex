@@ -420,8 +420,33 @@ export async function runCodexWorkflow({
 
     // Implement and resume share the implementer-result contract — validate
     // both even on failure, before re-throwing the underlying executor error.
+    // If validation throws (malformed partial result), we must still preserve
+    // the salvaged sessionId/taskId so callers can resume the thread.
     if (['implement', 'resume'].includes(mode) && schemaPath && parsed.result) {
-      validateImplementerResult(parsed.result);
+      try {
+        validateImplementerResult(parsed.result);
+      } catch (validationError) {
+        if (taskId) validationError.taskId = taskId;
+        if (parsed.threadId) {
+          validationError.sessionId = parsed.threadId;
+          validationError.salvageReason = 'malformed-partial-result';
+        }
+        validationError.cause = error;
+        try {
+          await eventEmitter.emit({
+            type: 'codex.invocation.error',
+            mode,
+            taskId,
+            errorClass: validationError.name ?? 'Error',
+            transient: false,
+            message: validationError.message ?? String(validationError),
+            salvagedSessionId: parsed.threadId ?? null
+          });
+        } catch {
+          // Telemetry must never mask the validation failure.
+        }
+        throw validationError;
+      }
     }
 
     try {

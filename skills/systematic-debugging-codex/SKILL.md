@@ -51,14 +51,11 @@ You MUST complete these steps in order:
 }
 ```
 
-3. **Handle status:**
+3. **Handle the response:**
 
-| Status | Action |
-|--------|--------|
-| DONE | Review root_cause, hypothesis, evidence, suggested_fix |
-| DONE_WITH_CONCERNS | Review concerns, decide if additional investigation needed |
-| NEEDS_CONTEXT | Gather requested context from user, re-dispatch with new prompt |
-| BLOCKED | Report blocker to user, gather missing info, re-dispatch |
+   - **Success (`result` populated):** the investigation conforms to `schemas/debug-investigation.schema.json` (`root_cause`, `evidence`, `working_examples`, `hypothesis`, `suggested_fix`). Proceed to validate (Step 4).
+   - **Weak or missing evidence:** re-dispatch `codex_debug` with a sharper prompt naming the missing pieces (or surface a blocker to the user when needed).
+   - **Error (no `result`):** inspect `stderrTail` and the resume hint in the error message; resume with `codex_resume(taskId="…")` once the cause is resolved.
 
 4. **Review investigation** — Claude validates root_cause and hypothesis are supported by evidence. If evidence is weak, re-dispatch with a more focused prompt.
 
