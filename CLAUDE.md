@@ -32,7 +32,10 @@ npm test                    # Node.js native test runner (node --test)
 npm run doctor              # Validate plugin installation and required CLIs
 npm run check:upstream      # Check upstream Superpowers fork drift
 npm run validate:plugin     # Validate Claude Code plugin structure
+npm run validate:schemas       # Validate schema registry and prompt/schema references
 ```
+
+Set `SUPERPOWERS_CODEX_LOG_FILE=/absolute/path/codex-events.jsonl` to append sanitized Codex and MCP lifecycle events; run `npm run doctor -- --verbose` to summarize recent events.
 
 ## Architecture
 
@@ -58,7 +61,10 @@ User ↔ Claude (controller)
 | `scripts/lib/mcp-workspace.mjs` | Roots-aware workspace resolver |
 | `scripts/lib/codex-jsonl.mjs` | Codex JSONL parser and implementer-result validators |
 | `scripts/lib/codex-state.mjs` | Task state persistence (load/save) |
+| `scripts/lib/codex-events.mjs` | Sanitized Codex/MCP lifecycle event validation and sinks |
+| `scripts/validate-schemas.mjs` | Schema metadata, registry, and prompt reference validation |
 | `scripts/detect-codex.mjs` | Runtime detection of codex CLI binary |
+| `schemas/INDEX.json` | Canonical schema version registry |
 | `.claude-plugin/plugin.json` | Plugin metadata, MCP server registration |
 | `.claude-plugin/marketplace.json` | Marketplace configuration |
 
@@ -119,6 +125,8 @@ Skills resume existing Codex threads via `codex_resume`. The MCP server is the o
 - Plugin updates must not destroy `.claude/state/` — state path is outside plugin root
 - `import.meta.url === \`file://${process.argv[1]}\`` pattern used for CLI entry detection
 - Upstream drift checker (`npm run check:upstream`) must pass in CI — fork must stay compatible
+- Prompt text must not enter observability events; `codex-events.mjs` redacts prompt-bearing keys before all sinks.
+- Schema contract changes must update both `schemas/<name>.schema.json` and `schemas/INDEX.json`; CI runs `npm run validate:schemas`.
 
 ## Claude Code Specific
 

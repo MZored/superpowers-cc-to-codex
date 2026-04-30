@@ -73,6 +73,15 @@ Example — pin reasoning effort to `xhigh` for this project regardless of your 
 { "effort": "xhigh", "serviceTier": "fast" }
 ```
 
+### Observability
+
+| Environment variable | Effect |
+|----------------------|--------|
+| `SUPERPOWERS_CODEX_LOG_FILE` | Appends sanitized Codex and MCP lifecycle events as JSON Lines. Prompt text is redacted. |
+| `SUPERPOWERS_CODEX_LOG=1` | Mirrors sanitized lifecycle events to stderr as JSON for local debugging. |
+
+Run `npm run doctor -- --verbose` with `SUPERPOWERS_CODEX_LOG_FILE` set to summarize the last 100 events by mode, retry count, recent errors, and p50/p95 invocation duration.
+
 ## Skills
 
 | Skill | What it does | MCP Tool |
@@ -103,6 +112,7 @@ npm test                    # Run all tests (node --test)
 npm run doctor              # Validate plugin + CLI setup
 npm run check:upstream      # Check upstream fork drift
 npm run validate:plugin     # Validate plugin structure
+npm run validate:schemas       # Validate schema metadata and prompt/schema references
 ```
 
 ## Transport Behavior
@@ -110,6 +120,32 @@ npm run validate:plugin     # Validate plugin structure
 - The MCP server is the primary transport and emits lifecycle-aware `notifications/progress` plus structured `notifications/message`.
 - Experimental task mode for `codex_implement` and `codex_resume` is off by default. Enable it with `SUPERPOWERS_CODEX_EXPERIMENTAL_TASKS=implement-resume`.
 - Workspace resume state stays under `.claude/state/codex/`. Experimental task-mode records live under `${CLAUDE_PLUGIN_DATA}/mcp-tasks/`.
+
+## Troubleshooting
+
+### ETIMEDOUT / connection reset
+
+Transient network failures are retried once. If the response includes `taskId` and `sessionId`, run `codex_resume` with that `taskId` to continue the saved Codex thread.
+
+### Authentication failure
+
+Run `codex login`, then rerun `npm run doctor`. In CI, prefer `CODEX_API_KEY` for `codex exec` automation.
+
+### Model not available
+
+Pin a supported model in `~/.codex/config.toml` or set `"model": "auto"` in `.claude/codex-defaults.json` so Codex CLI chooses from the authenticated account.
+
+### Status: ok, partial, error
+
+`ok` means Codex completed and returned parseable output. `partial` means the MCP runtime salvaged a session, assistant text, or result from a failed run. `error` means no parseable output was available, or the failure happened before Codex produced recoverable JSONL.
+
+### Where logs live
+
+Set `SUPERPOWERS_CODEX_LOG_FILE=/absolute/path/codex-events.jsonl` to append sanitized lifecycle events. Run `npm run doctor -- --verbose` to summarize recent events.
+
+### Schema validation error
+
+Run `npm run validate:schemas`. Update the matching `schemas/*.schema.json` file, `schemas/INDEX.json`, and any prompt `## Output Requirements` section that lists required schema keys.
 
 ## Links
 

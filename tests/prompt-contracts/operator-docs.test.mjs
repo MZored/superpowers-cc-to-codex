@@ -80,3 +80,26 @@ test('branch finishing cleanup policy is consistent for PR option', async () => 
   assert.match(skill, /For Options 1, 2, 4/);
   assert.match(skill, /Clean up worktree for Options 1, 2, and 4 only/);
 });
+
+test('README documents troubleshooting and observability environment variables', async () => {
+  const readme = await read('README.md');
+
+  assert.match(readme, /## Troubleshooting/);
+  assert.match(readme, /ETIMEDOUT|connection reset/i);
+  assert.match(readme, /codex_resume/);
+  assert.match(readme, /codex login/);
+  assert.match(readme, /model not available/i);
+  assert.match(readme, /status.*ok.*partial.*error/is);
+  assert.match(readme, /SUPERPOWERS_CODEX_LOG_FILE/);
+  assert.match(readme, /SUPERPOWERS_CODEX_LOG=1/);
+  assert.match(readme, /npm run validate:schemas/);
+});
+
+test('CLAUDE documents event log and schema validation surfaces', async () => {
+  const claudeMd = await read('CLAUDE.md');
+
+  assert.match(claudeMd, /scripts\/lib\/codex-events\.mjs/);
+  assert.match(claudeMd, /SUPERPOWERS_CODEX_LOG_FILE/);
+  assert.match(claudeMd, /schemas\/INDEX\.json/);
+  assert.match(claudeMd, /npm run validate:schemas/);
+});
