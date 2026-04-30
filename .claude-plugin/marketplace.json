@@ -9,7 +9,7 @@
     {
       "name": "superpowers-cc-to-codex",
       "description": "Codex-backed fork of seven Superpowers workflows: brainstorming, planning, implementation, code review, debugging, TDD, and branch completion.",
-      "version": "0.7.0",
+      "version": "0.7.1",
       "source": "./",
       "author": {
         "name": "mzored"
