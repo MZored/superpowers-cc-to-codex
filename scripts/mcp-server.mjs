@@ -35,6 +35,7 @@ import { createTaskRegistry } from './lib/mcp-task-registry.mjs';
 import { createTaskModeController, isTaskEligibleTool } from './lib/mcp-task-mode.mjs';
 import { dispatchWorkflowTool } from './lib/mcp-workflow-dispatch.mjs';
 import { createCodexEventEmitterFromEnv } from './lib/codex-events.mjs';
+import { truncateStderrTail } from './lib/codex-jsonl.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -94,7 +95,7 @@ function buildErrorResult(name, error, taskId = null) {
       timedOut: false,
       result: null,
       assistantText: null,
-      stderrTail: error.stderr ?? '',
+      stderrTail: truncateStderrTail(error.stderr ?? ''),
       rawOutput: null
     },
     isError: true
