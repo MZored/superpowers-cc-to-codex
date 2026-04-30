@@ -19,6 +19,8 @@ async function listFilesRecursive(root) {
   const files = [];
 
   for (const entry of entries) {
+    if (entry.isSymbolicLink()) continue;
+    if (entry.name.startsWith('.')) continue;
     const fullPath = join(root, entry.name);
     if (entry.isDirectory()) {
       files.push(...await listFilesRecursive(fullPath));
@@ -106,9 +108,22 @@ export async function validateSchemaRegistry({ root = DEFAULT_ROOT } = {}) {
 function outputRequirementsSection(markdown) {
   const match = markdown.match(/^## Output Requirements\s*$/m);
   if (!match) return null;
-  return markdown.slice(match.index);
+  const start = match.index;
+  const headingEnd = start + match[0].length;
+  const rest = markdown.slice(headingEnd);
+  const next = rest.search(/^## /m);
+  return next === -1 ? markdown.slice(start) : markdown.slice(start, headingEnd + next);
 }
 
+/**
+ * Walks skill markdown files for `schemas/<name>.schema.json` references and
+ * verifies they point at live schemas. When a referencing prompt also has an
+ * `## Output Requirements` section, the function additionally requires every
+ * `required` key from the referenced schema to appear by name in that section.
+ * Prompts without an `## Output Requirements` section are still verified for
+ * reference correctness but are not required-key-checked. This is intentional:
+ * not all prompts produce schema-shaped output.
+ */
 export async function validatePromptSchemaReferences({ root = DEFAULT_ROOT } = {}) {
   const errors = [];
   const schemaDir = join(root, 'schemas');
