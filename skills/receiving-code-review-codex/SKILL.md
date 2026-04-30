@@ -85,7 +85,16 @@ IF a finding seems wrong:
 IF a finding conflicts with your human partner's prior decisions:
   Stop and discuss with your human partner first
 
-IF a finding is DONE_WITH_CONCERNS or below severity threshold:
+IF assessment is approved:
+  No action required unless the human partner asks for follow-up
+
+IF assessment is with_fixes:
+  Evaluate each important or critical issue before implementing
+
+IF assessment is blocked:
+  Treat as blocking until verified, fixed, or technically rejected
+
+IF a finding is minor or below the threshold agreed with your human partner:
   Note it, don't block on it
 ```
 

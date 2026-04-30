@@ -24,6 +24,10 @@ node_modules/
 # Runtime state
 .claude/state/
 
+# Claude Code per-user session settings (not part of the plugin)
+.claude/settings.json
+.claude/settings.local.json
+
 # Test output
 coverage/
 .tmp/

@@ -32,7 +32,15 @@ You MUST create a task for each plan task and complete them in order.
 
 **Per task:**
 
-3. **Dispatch implementer** — call the `codex_implement` MCP tool.
+3. **Capture task base** — before dispatching the implementer, record the current revision:
+
+```bash
+TASK_BASE_SHA="$(git rev-parse HEAD)"
+```
+
+Substitute the captured TASK_BASE_SHA value as the structured review base for this task, so the reviewer inspects only the task's delta rather than all prior tasks.
+
+4. **Dispatch implementer** — call the `codex_implement` MCP tool.
    Pass the task description as the `prompt`:
 
 ```json
@@ -46,8 +54,8 @@ You MUST create a task for each plan task and complete them in order.
 }
 ```
 
-4. **Handle status** — see Status Handling below
-5. **Spec compliance review** — Claude reads the actual code and verifies against spec using `spec-review-template.md`; if issues remain, resume the same implementer thread with `codex_resume`:
+5. **Handle status** — see Status Handling below
+6. **Spec compliance review** — Claude reads the actual code and verifies against spec using `spec-review-template.md`; if issues remain, resume the same implementer thread with `codex_resume`:
 
 ```json
 {
@@ -61,7 +69,7 @@ You MUST create a task for each plan task and complete them in order.
 }
 ```
 
-6. **Code quality review** — call `codex_review` only after spec compliance passes:
+7. **Code quality review** — call `codex_review` only after spec compliance passes:
 
 ```json
 {
@@ -69,19 +77,19 @@ You MUST create a task for each plan task and complete them in order.
   "arguments": {
     "taskId": "task-17-review",
     "reviewStyle": "structured",
-    "scope": { "kind": "base", "base": "origin/main" },
+    "scope": { "kind": "base", "base": "<captured TASK_BASE_SHA value>" },
     "prompt": "Review the implementation of Task 4 from docs/superpowers/plans/2026-04-03-agent-forwarding.md. Focus on regressions, incorrect routing, and missing test coverage.",
     "workspaceRoot": "/absolute/path/to/your/repo"
   }
 }
 ```
 
-7. **Mark complete** — only after both gates pass
+8. **Mark complete** — only after both gates pass
 
 **After all tasks:**
 
-8. **Final review** — call `codex_review` for the entire implementation with a new task ID and the final base SHA.
-9. **Finish branch** — wrap up the development branch
+9. **Final review** — call `codex_review` for the entire implementation with a new task ID and the final base SHA.
+10. **Finish branch** — wrap up the development branch
 
 ## Status Handling
 

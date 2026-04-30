@@ -50,7 +50,7 @@ test('task registry rejects unsafe task ids that could escape the registry direc
   const pluginData = await mkdtemp(join(tmpdir(), 'sp-codex-plugin-data-'));
   const registry = createTaskRegistry({ env: { CLAUDE_PLUGIN_DATA: pluginData } });
 
-  for (const taskId of ['../outside', '/abs/path', 'task/1', 'task\\1']) {
+  for (const taskId of ['../outside', '/abs/path', 'task/1', 'task\\1', 'foo/bar', '../etc', '/abs']) {
     await assert.rejects(
       registry.save({
         taskId,
@@ -62,11 +62,37 @@ test('task registry rejects unsafe task ids that could escape the registry direc
         workspaceRoot: '/repo',
         result: null
       }),
-      /unsafe taskId/i
+      (error) => {
+        assert.match(error.message, /^unsafe taskId: /);
+        assert.ok(
+          !/"/.test(error.message),
+          `error message should match the unified codex-state format without quotes, got: ${error.message}`
+        );
+        return true;
+      }
     );
 
-    await assert.rejects(registry.get(taskId), /unsafe taskId/i);
+    await assert.rejects(registry.get(taskId), /unsafe taskId: /);
   }
+});
+
+test('task registry accepts safe task ids that include allowed punctuation', async () => {
+  const pluginData = await mkdtemp(join(tmpdir(), 'sp-codex-plugin-data-'));
+  const registry = createTaskRegistry({ env: { CLAUDE_PLUGIN_DATA: pluginData } });
+
+  await registry.save({
+    taskId: 'good-name.1',
+    status: 'working',
+    createdAt: '2026-04-09T00:00:00.000Z',
+    lastUpdatedAt: '2026-04-09T00:01:00.000Z',
+    ttl: 3600,
+    toolName: 'codex_implement',
+    workspaceRoot: '/repo',
+    result: null
+  });
+
+  const record = await registry.get('good-name.1');
+  assert.equal(record.taskId, 'good-name.1');
 });
 
 test('task registry list returns records sorted by task id', async () => {

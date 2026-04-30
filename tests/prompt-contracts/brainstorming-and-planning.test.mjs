@@ -14,15 +14,6 @@ test('forked workflow entrypoints require explicit invocation', async () => {
   }
 });
 
-test('brainstorm and plan agents are thin codex forwarders', async () => {
-  const researchAgent = await read('agents/codex-brainstorm-researcher.md');
-  const planAgent = await read('agents/codex-plan-drafter.md');
-  assert.match(researchAgent, /\$\{CLAUDE_PLUGIN_ROOT\}\/scripts\/codex-run\.mjs.*research/);
-  assert.match(planAgent, /\$\{CLAUDE_PLUGIN_ROOT\}\/scripts\/codex-run\.mjs.*plan/);
-  assert.doesNotMatch(researchAgent, /git commit/);
-  assert.doesNotMatch(planAgent, /git commit/);
-});
-
 test('brainstorming and planning skills call MCP tools instead of subagent types', async () => {
   const brainstorming = await read('skills/brainstorming-codex/SKILL.md');
   const planning = await read('skills/writing-plans-codex/SKILL.md');
@@ -31,4 +22,13 @@ test('brainstorming and planning skills call MCP tools instead of subagent types
   assert.match(planning, /codex_plan/);
   assert.doesNotMatch(brainstorming, /subagent_type/);
   assert.doesNotMatch(planning, /subagent_type/);
+});
+
+test('plan prompt and schema contract include the full markdown plan body', async () => {
+  const prompt = await read('skills/writing-plans-codex/prompts/planning-brief.md');
+  const schema = JSON.parse(await read('schemas/plan-draft.schema.json'));
+
+  assert.match(prompt, /plan_markdown/);
+  assert.ok(schema.required.includes('plan_markdown'), 'plan-draft schema must require plan_markdown');
+  assert.equal(schema.properties.plan_markdown.type, 'string');
 });

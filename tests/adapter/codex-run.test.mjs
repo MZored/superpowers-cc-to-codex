@@ -87,6 +87,101 @@ test('resume runs omit init-only flags that the live resume command does not sup
   assert.ok(!invocation.command.includes('-C'));
 });
 
+test('auto model delegates model choice to Codex CLI defaults', () => {
+  const invocation = buildInvocation({
+    mode: 'implement',
+    cwd: '/repo',
+    taskId: 'task-auto-model',
+    model: 'auto',
+    effort: 'medium',
+    schemaPath: 'schemas/implementer-result.schema.json',
+    promptFile: 'skills/subagent-driven-development-codex/prompts/implement-task.md'
+  });
+
+  assert.equal(invocation.command.includes('-m'), false);
+  assert.equal(invocation.command.includes('auto'), false);
+});
+
+test('effort="auto" delegates reasoning effort to Codex CLI / user config', () => {
+  const invocation = buildInvocation({
+    mode: 'implement',
+    cwd: '/repo',
+    taskId: 'task-auto-effort',
+    model: 'auto',
+    effort: 'auto',
+    schemaPath: 'schemas/implementer-result.schema.json',
+    promptFile: 'skills/subagent-driven-development-codex/prompts/implement-task.md'
+  });
+
+  const joined = invocation.command.join(' ');
+  assert.equal(/model_reasoning_effort/.test(joined), false, 'auto effort must not pass -c flag');
+});
+
+test('effort=undefined leaves Codex CLI / user config to choose effort', () => {
+  const invocation = buildInvocation({
+    mode: 'implement',
+    cwd: '/repo',
+    taskId: 'task-no-effort',
+    model: 'auto',
+    schemaPath: 'schemas/implementer-result.schema.json',
+    promptFile: 'skills/subagent-driven-development-codex/prompts/implement-task.md'
+  });
+
+  const joined = invocation.command.join(' ');
+  assert.equal(/model_reasoning_effort/.test(joined), false, 'absent effort must not pass -c flag');
+});
+
+test('explicit effort still flows through (e.g. user picks xhigh)', () => {
+  const invocation = buildInvocation({
+    mode: 'implement',
+    cwd: '/repo',
+    taskId: 'task-xhigh',
+    model: 'auto',
+    effort: 'xhigh',
+    schemaPath: 'schemas/implementer-result.schema.json',
+    promptFile: 'skills/subagent-driven-development-codex/prompts/implement-task.md'
+  });
+
+  const joined = invocation.command.join(' ');
+  assert.match(joined, /model_reasoning_effort="xhigh"/);
+});
+
+test('runCodexWorkflow rejects unsafe taskId before executor runs', async () => {
+  let executed = false;
+
+  await assert.rejects(
+    runCodexWorkflow({
+      mode: 'implement',
+      cwd: '/repo',
+      taskId: 'feature/one',
+      taskText: 'must not run',
+      runtimeDetector: async () => ({
+        installed: true,
+        authenticated: true,
+        authProvider: 'chatgpt',
+        version: 'codex-cli 0.125.0'
+      }),
+      executor: async () => {
+        executed = true;
+        return {
+          stdout: '{"type":"thread.started","thread_id":"thread-unsafe"}',
+          stderr: '',
+          code: 0
+        };
+      },
+      stateStore: {
+        loadRequired: async () => null,
+        save: async () => {
+          throw new Error('unsafe taskId: feature/one');
+        }
+      }
+    }),
+    /unsafe taskId/i
+  );
+
+  assert.equal(executed, false, 'unsafe taskId must fail before Codex execution');
+});
+
 test('dry-run CLI emits one JSON document', async () => {
   const scriptPath = new URL('../../scripts/codex-run.mjs', import.meta.url);
   const { stdout } = await execFileAsync(
@@ -128,16 +223,16 @@ test('composePromptText merges template and task text with the task marker', () 
   );
 });
 
-test('buildPrompt ignores task text for uncommitted advisory review', async () => {
+test('buildPrompt includes task text for uncommitted advisory review', async () => {
   const prompt = await buildPrompt({
     mode: 'review',
     cwd: process.cwd(),
     uncommitted: true,
     promptFile: new URL('../fixtures/codex/implement-prompt.md', import.meta.url).pathname,
-    taskText: 'This line must not be appended.'
+    taskText: 'Focus on cancellation handling.'
   });
 
-  assert.doesNotMatch(prompt, /This line must not be appended\./);
+  assert.match(prompt, /Focus on cancellation handling\./);
 });
 
 test('buildPrompt appends task text before structured review scope', async () => {
@@ -183,7 +278,7 @@ test('runCodexWorkflow returns parsed output and persists thread state', async (
     executor: async () => ({
       stdout: [
         '{"type":"thread.started","thread_id":"thread-123"}',
-        '{"type":"item.completed","item":{"type":"agent_message","text":"{\\"status\\":\\"DONE\\"}"}}'
+        '{"type":"item.completed","item":{"type":"agent_message","text":"{\\"status\\":\\"DONE\\",\\"summary\\":\\"ok\\",\\"files_changed\\":[],\\"tests\\":[],\\"concerns\\":[]}"}}'
       ].join('\n'),
       stderr: '',
       code: 0
@@ -195,9 +290,43 @@ test('runCodexWorkflow returns parsed output and persists thread state', async (
   });
 
   assert.equal(output.sessionId, 'thread-123');
-  assert.deepEqual(output.result, { status: 'DONE' });
+  assert.deepEqual(output.result, {
+    status: 'DONE',
+    summary: 'ok',
+    files_changed: [],
+    tests: [],
+    concerns: []
+  });
   assert.equal(saves[0].taskId, 'task-17');
   assert.equal(saves[0].state.sessionId, 'thread-123');
+});
+
+test('runCodexWorkflow preserves plain advisory review output as assistant text', async () => {
+  const output = await runCodexWorkflow({
+    mode: 'review',
+    cwd: '/repo',
+    taskId: 'task-review',
+    uncommitted: true,
+    taskText: 'Review cancellation.',
+    runtimeDetector: async () => ({
+      installed: true,
+      authenticated: true,
+      authProvider: 'chatgpt',
+      version: 'codex-cli 0.125.0'
+    }),
+    executor: async () => ({
+      stdout: 'Finding: fix cancellation handling\n',
+      stderr: '',
+      code: 0
+    }),
+    stateStore: {
+      loadRequired: async () => null,
+      save: async () => {}
+    }
+  });
+
+  assert.equal(output.assistantText, 'Finding: fix cancellation handling');
+  assert.equal(output.result, null);
 });
 
 test('runCodexWorkflow forwards signal and onSpawn to the executor as execution options', async () => {

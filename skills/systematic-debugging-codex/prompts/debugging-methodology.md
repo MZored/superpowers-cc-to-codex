@@ -137,6 +137,7 @@ This file is referenced by the investigation brief — Codex receives this when 
 
 Return JSON matching `schemas/debug-investigation.schema.json` with:
 - `root_cause`: the identified root cause with supporting evidence
-- `hypothesis`: your strongest hypothesis about why the bug occurs
 - `evidence`: specific code paths, values, or logs that support the hypothesis
+- `working_examples`: similar working code paths or configurations used for comparison
+- `hypothesis`: your strongest hypothesis about why the bug occurs
 - `suggested_fix`: a single targeted fix addressing the root cause

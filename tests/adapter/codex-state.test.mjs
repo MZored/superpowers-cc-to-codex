@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadTaskState, saveTaskState, listTaskStates } from '../../scripts/lib/codex-state.mjs';
@@ -18,6 +18,26 @@ test('saveTaskState round-trips task metadata under .claude/state/codex', async 
   const loaded = await loadTaskState(root, 'task-3');
   assert.equal(loaded.phase, 'implement');
   assert.equal(loaded.sessionId, '019d4f82-58b8-72d3-9212-2e3d3fc69bcb');
+});
+
+test('task state rejects unsafe task ids before touching the filesystem', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'sp-codex-unsafe-'));
+
+  for (const taskId of ['../escape', '../../escape', '/tmp/escape', 'task/1', 'task\\1']) {
+    await assert.rejects(
+      saveTaskState(root, taskId, { taskId, phase: 'implement' }),
+      /unsafe taskId/i,
+      `saveTaskState should reject ${taskId}`
+    );
+    await assert.rejects(
+      loadTaskState(root, taskId),
+      /unsafe taskId/i,
+      `loadTaskState should reject ${taskId}`
+    );
+  }
+
+  await assert.rejects(access(join(root, '.claude', 'escape.json')), /ENOENT/);
+  await assert.rejects(access(join(root, 'escape.json')), /ENOENT/);
 });
 
 test('saveTaskState writes atomically via temp file + rename', async () => {
@@ -64,6 +84,20 @@ test('saveTaskState writes atomically via temp file + rename', async () => {
   // Content round-trips correctly.
   const loaded = await loadTaskState(root, 'task-atomic');
   assert.equal(loaded.phase, 'implement');
+});
+
+test('saveTaskState uses unique temp files for concurrent writes to the same task', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'sp-codex-concurrent-'));
+
+  await assert.doesNotReject(
+    Promise.all([
+      saveTaskState(root, 'same-task', { taskId: 'same-task', phase: 'a' }),
+      saveTaskState(root, 'same-task', { taskId: 'same-task', phase: 'b' })
+    ])
+  );
+
+  const loaded = await loadTaskState(root, 'same-task');
+  assert.ok(['a', 'b'].includes(loaded.phase));
 });
 
 test('saveTaskState preserves prior content if the write fails mid-save', async () => {

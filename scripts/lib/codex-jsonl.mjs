@@ -121,6 +121,20 @@ export function truncateRawOutput(text, maxChars = 12_000) {
   return `${text.slice(0, maxChars)}\n...[truncated ${text.length - maxChars} chars]`;
 }
 
+// stderr tails surface in MCP responses, where unbounded payloads bloat the
+// JSON-RPC wire size for long-running implement runs. Keep the *tail* (the
+// most recent bytes — that's where actionable failure signal lives) and
+// prepend a marker noting how much was dropped.
+export function truncateStderrTail(text, maxChars = 4_000) {
+  if (typeof text !== 'string') return text ?? '';
+  // Guard against maxChars <= 0: text.slice(-0) is slice(0), which returns
+  // the whole string. Callers passing 0 mean "no tail" — honor that.
+  if (maxChars <= 0) return text.length === 0 ? '' : `[truncated ${text.length} chars]`;
+  if (text.length <= maxChars) return text;
+  const dropped = text.length - maxChars;
+  return `[truncated ${dropped} chars]\n...${text.slice(-maxChars)}`;
+}
+
 export function validateImplementerResult(result) {
   if (!result || typeof result !== 'object') {
     throw new Error('implementer-result must be a JSON object.');
@@ -136,8 +150,26 @@ export function validateImplementerResult(result) {
     throw new Error('implementer-result arrays are malformed.');
   }
 
+  if (!['DONE', 'DONE_WITH_CONCERNS', 'BLOCKED', 'NEEDS_CONTEXT'].includes(result.status)) {
+    throw new Error('implementer-result invalid status.');
+  }
+  if (typeof result.summary !== 'string') {
+    throw new Error('implementer-result: summary must be a string.');
+  }
   if (!result.files_changed.every((f) => typeof f === 'string')) {
     throw new Error('implementer-result: files_changed must contain strings.');
+  }
+  if (
+    !result.tests.every(
+      (entry) =>
+        entry &&
+        typeof entry === 'object' &&
+        !Array.isArray(entry) &&
+        typeof entry.command === 'string' &&
+        typeof entry.result === 'string'
+    )
+  ) {
+    throw new Error('implementer-result: tests must contain objects with command and result strings.');
   }
   if (!result.concerns.every((c) => typeof c === 'string')) {
     throw new Error('implementer-result: concerns must contain strings.');

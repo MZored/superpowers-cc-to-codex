@@ -25,6 +25,20 @@
         }
       }
     },
+    "red_green_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["behavior", "red", "green"],
+        "properties": {
+          "behavior": { "type": "string" },
+          "red": { "type": "string" },
+          "green": { "type": "string" },
+          "refactor": { "type": "string" }
+        }
+      }
+    },
     "concerns": {
       "type": "array",
       "items": { "type": "string" }

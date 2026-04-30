@@ -58,6 +58,36 @@ test('tool definitions expose all seven workflow tools', () => {
   );
 });
 
+test('tool definitions expose current Codex reasoning effort values plus auto sentinel', () => {
+  for (const tool of TOOL_DEFINITIONS) {
+    assert.deepEqual(
+      tool.inputSchema.properties.effort.enum,
+      ['auto', 'minimal', 'low', 'medium', 'high', 'xhigh'],
+      `${tool.name} should accept 'auto' to defer to ~/.codex/config.toml`
+    );
+  }
+});
+
+test('all tool defaults defer to user config (auto model + auto effort)', () => {
+  for (const tool of TOOL_DEFINITIONS) {
+    assert.equal(tool.defaults.model, 'auto', `${tool.name} default model must be 'auto'`);
+    assert.equal(tool.defaults.effort, 'auto', `${tool.name} default effort must be 'auto'`);
+  }
+});
+
+test('tool definitions constrain taskId to a state-file-safe identifier', () => {
+  for (const tool of TOOL_DEFINITIONS) {
+    const taskIdSchema = tool.inputSchema.properties.taskId;
+    assert.equal(taskIdSchema.pattern, '^[A-Za-z0-9][A-Za-z0-9._-]*$', `${tool.name} should reject path-like task ids`);
+  }
+});
+
+test('tool output schema accepts error status returned by handler error paths', () => {
+  for (const tool of TOOL_DEFINITIONS) {
+    assert.ok(tool.outputSchema.properties.status.enum.includes('error'), `${tool.name} output schema should accept error`);
+  }
+});
+
 test('buildWorkflowRequest maps typed review and resume arguments to adapter flags', () => {
   const reviewTool = getToolDefinition('codex_review');
   const resumeTool = getToolDefinition('codex_resume');
@@ -176,6 +206,25 @@ test('buildWorkflowRequest: tool defaults used when no args or config', () => {
   assert.equal(request.model, tool.defaults.model);
   assert.equal(request.effort, tool.defaults.effort);
   assert.equal(request.serviceTier, undefined);
+});
+
+test('buildWorkflowRequest: full tool defaults delegate model choice to Codex CLI', () => {
+  for (const name of ['codex_implement', 'codex_review', 'codex_resume']) {
+    const tool = getToolDefinition(name);
+    const args = name === 'codex_review'
+      ? { prompt: 'x', reviewStyle: 'advisory', scope: { kind: 'uncommitted' } }
+      : { prompt: 'x', taskId: 'task-auto' };
+
+    const request = buildWorkflowRequest({
+      tool,
+      args,
+      cwd: '/repo',
+      pluginRoot: PLUGIN_ROOT,
+      projectConfig: {}
+    });
+
+    assert.equal(request.model, 'auto', `${name} should let Codex CLI select the recommended full model`);
+  }
 });
 
 test('buildWorkflowRequest: mini tools use projectConfig.modelMini', () => {

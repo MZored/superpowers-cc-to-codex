@@ -60,6 +60,53 @@ test('runWithMcpRuntime returns status ok on successful operation', async () => 
   assert.equal(result.stderrTail, 'warning: deprecated flag');
 });
 
+test('runWithMcpRuntime truncates very long stderrTail to keep MCP responses bounded', async () => {
+  const longStderr = 'x'.repeat(50_000);
+
+  const result = await runWithMcpRuntime({
+    requestId: 'req-long-stderr',
+    operation: async ({ markSpawned }) => {
+      markSpawned({ kill() {} });
+      return {
+        stdout: '{"type":"thread.started","thread_id":"thread-long"}',
+        stderr: longStderr
+      };
+    }
+  });
+
+  assert.equal(result.status, 'ok');
+  // 4 KB cap plus a small marker overhead.
+  assert.ok(
+    result.stderrTail.length <= 4_500,
+    `stderrTail must be truncated, got ${result.stderrTail.length} chars`
+  );
+  assert.match(result.stderrTail, /\[truncated/);
+  // The most recent bytes (the actionable signal) must be preserved.
+  assert.match(result.stderrTail, /xxx$/);
+});
+
+test('runWithMcpRuntime truncates long stderrTail on the salvage path too', async () => {
+  const longStderr = 'y'.repeat(50_000);
+
+  const result = await runWithMcpRuntime({
+    requestId: 'req-salvage-long-stderr',
+    operation: async ({ markSpawned }) => {
+      markSpawned({ kill() {} });
+      const error = new Error('crashed');
+      error.stdout = '{"type":"thread.started","thread_id":"thread-salv"}';
+      error.stderr = longStderr;
+      throw error;
+    }
+  });
+
+  assert.equal(result.status, 'partial');
+  assert.ok(
+    result.stderrTail.length <= 4_500,
+    `salvage stderrTail must be truncated, got ${result.stderrTail.length} chars`
+  );
+  assert.match(result.stderrTail, /\[truncated/);
+});
+
 test('runWithMcpRuntime partial salvage triggers on assistantText alone', async () => {
   const result = await runWithMcpRuntime({
     requestId: 'req-assistant-only',

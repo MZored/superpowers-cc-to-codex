@@ -7,16 +7,16 @@
   "properties": {
     "model": {
       "type": "string",
-      "description": "Default model for full-capability tools (implement, review, resume)."
+      "description": "Default model for full-capability tools (implement, review, resume). Use 'auto' to defer to ~/.codex/config.toml."
     },
     "modelMini": {
       "type": "string",
-      "description": "Default model for lightweight tools (research, plan, debug, branch analysis). Falls back to 'model' if not set."
+      "description": "Default model for lightweight tools (research, plan, debug, branch analysis). Use 'auto' to defer to ~/.codex/config.toml. Falls back to 'model' if not set."
     },
     "effort": {
       "type": "string",
-      "enum": ["low", "medium", "high"],
-      "description": "Default reasoning effort level."
+      "enum": ["auto", "minimal", "low", "medium", "high", "xhigh"],
+      "description": "Default reasoning effort level. Use 'auto' to defer to ~/.codex/config.toml."
     },
     "serviceTier": {
       "type": "string",
