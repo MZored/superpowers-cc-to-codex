@@ -5,6 +5,7 @@ import { assertSafeTaskId, loadRequiredTaskState, saveTaskState } from './lib/co
 import { runCommand } from './lib/run-command.mjs';
 import { buildStructuredReviewPrompt } from './lib/review-scope.mjs';
 import { parseCodexJsonl, validateImplementerResult } from './lib/codex-jsonl.mjs';
+import { noopCodexEventEmitter } from './lib/codex-events.mjs';
 
 const SUPPORTED_MODES = new Set(['research', 'plan', 'implement', 'review', 'resume']);
 
@@ -187,7 +188,7 @@ const TRANSIENT_OUTPUT_PATTERNS = [
   /upstream\s+(?:error|timeout)/i
 ];
 
-async function runWithTransientRetry({ attempt, isTransient, maxRetries }) {
+async function runWithTransientRetry({ attempt, isTransient, maxRetries, onRetry }) {
   let lastError;
   for (let i = 0; i <= maxRetries; i += 1) {
     try {
@@ -197,6 +198,7 @@ async function runWithTransientRetry({ attempt, isTransient, maxRetries }) {
       if (i === maxRetries || !isTransient(error)) {
         throw error;
       }
+      onRetry?.(error);
       // Loop continues — single retry by default. No backoff: Codex's own
       // server-side rate limiting handles real overload.
     }
@@ -334,7 +336,8 @@ export async function runCodexWorkflow({
   executor = runInvocation,
   stateStore = { loadRequired: loadRequiredTaskState, save: saveTaskState },
   isTransient = isTransientCodexError,
-  maxRetries = 1
+  maxRetries = 1,
+  eventEmitter = noopCodexEventEmitter
 }) {
   if (taskId != null) {
     assertSafeTaskId(taskId);
@@ -367,18 +370,43 @@ export async function runCodexWorkflow({
     dryRun
   });
 
+  const startedAt = Date.now();
+  let retried = false;
+
+  await eventEmitter.emit({
+    type: 'codex.invocation.start',
+    mode,
+    taskId,
+    model: invocation.model ?? model ?? null,
+    effort: invocation.effort ?? effort ?? null,
+    serviceTier: invocation.serviceTier ?? null,
+    sessionId: invocation.sessionId ?? null
+  });
+
   let execution;
 
   try {
     execution = await runWithTransientRetry({
       isTransient,
       maxRetries,
+      onRetry: () => {
+        retried = true;
+      },
       attempt: () => executor(invocation, { signal, onSpawn, onStdoutChunk, onStderrChunk })
     });
   } catch (error) {
     // Salvage: attempt to extract partial state from error output
     const rawStdout = error.stdout ?? '';
     const parsed = parseCodexJsonl(rawStdout);
+
+    if (taskId) {
+      error.taskId = taskId;
+    }
+
+    if (parsed.threadId) {
+      error.sessionId = parsed.threadId;
+      error.salvageReason = 'partial-jsonl-thread';
+    }
 
     if (parsed.threadId && taskId) {
       await stateStore.save(cwd, taskId, {
@@ -396,6 +424,16 @@ export async function runCodexWorkflow({
       validateImplementerResult(parsed.result);
     }
 
+    await eventEmitter.emit({
+      type: 'codex.invocation.error',
+      mode,
+      taskId,
+      errorClass: error.name ?? 'Error',
+      transient: isTransient(error),
+      message: error.message ?? String(error),
+      salvagedSessionId: parsed.threadId ?? null
+    });
+
     throw error;
   }
 
@@ -412,6 +450,17 @@ export async function runCodexWorkflow({
   }
 
   const effectiveSessionId = parsed.threadId ?? invocation.sessionId ?? null;
+
+  await eventEmitter.emit({
+    type: 'codex.invocation.end',
+    mode,
+    taskId,
+    sessionId: effectiveSessionId,
+    durationMs: Date.now() - startedAt,
+    status: 'ok',
+    exitCode: execution.code ?? 0,
+    retried
+  });
 
   if (effectiveSessionId && taskId) {
     await stateStore.save(cwd, taskId, {

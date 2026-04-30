@@ -268,3 +268,158 @@ test('loadRequiredTaskState explains how to recover from missing state', async (
     /No saved Codex session for taskId "missing-task"[\s\S]*--sessionId explicitly/
   );
 });
+
+test('runCodexWorkflow emits sanitized start and end invocation events', async () => {
+  const events = [];
+
+  await runCodexWorkflow({
+    mode: 'implement',
+    cwd: '/repo',
+    taskId: 'task-events',
+    model: 'auto',
+    effort: 'auto',
+    serviceTier: 'fast',
+    schemaPath: '/repo/schemas/implementer-result.schema.json',
+    promptFile: '/repo/skills/subagent-driven-development-codex/prompts/implement-task.md',
+    taskText: 'secret task body',
+    eventEmitter: { emit: async (event) => events.push(event) },
+    runtimeDetector: async () => ({
+      installed: true,
+      authenticated: true,
+      authProvider: 'chatgpt',
+      version: 'codex-cli 0.125.0'
+    }),
+    executor: async () => ({
+      stdout: [
+        '{"type":"thread.started","thread_id":"thread-events"}',
+        '{"type":"item.completed","item":{"type":"agent_message","text":"{\\"status\\":\\"DONE\\",\\"summary\\":\\"ok\\",\\"files_changed\\":[],\\"tests\\":[],\\"concerns\\":[]}"}}'
+      ].join('\n'),
+      stderr: '',
+      code: 0
+    }),
+    stateStore: { loadRequired: async () => null, save: async () => {} }
+  });
+
+  assert.deepEqual(events.map((event) => event.type), [
+    'codex.invocation.start',
+    'codex.invocation.end'
+  ]);
+  assert.equal(events[0].mode, 'implement');
+  assert.equal(events[0].taskId, 'task-events');
+  assert.equal('taskText' in events[0], false);
+  assert.equal(events[1].sessionId, 'thread-events');
+  assert.equal(events[1].status, 'ok');
+  assert.equal(events[1].retried, false);
+});
+
+test('runCodexWorkflow end event records when a transient retry happened', async () => {
+  const events = [];
+  let attempts = 0;
+
+  await runCodexWorkflow({
+    mode: 'implement',
+    cwd: '/repo',
+    taskId: 'task-retried-event',
+    schemaPath: '/repo/schemas/implementer-result.schema.json',
+    eventEmitter: { emit: async (event) => events.push(event) },
+    runtimeDetector: async () => ({
+      installed: true,
+      authenticated: true,
+      authProvider: 'chatgpt',
+      version: 'codex-cli 0.125.0'
+    }),
+    executor: async () => {
+      attempts += 1;
+      if (attempts === 1) {
+        const error = new Error('connection reset by peer');
+        error.code = 'ECONNRESET';
+        error.stdout = '';
+        error.stderr = 'connection reset by peer';
+        throw error;
+      }
+      return {
+        stdout: [
+          '{"type":"thread.started","thread_id":"thread-retried"}',
+          '{"type":"item.completed","item":{"type":"agent_message","text":"{\\"status\\":\\"DONE\\",\\"summary\\":\\"ok\\",\\"files_changed\\":[],\\"tests\\":[],\\"concerns\\":[]}"}}'
+        ].join('\n'),
+        stderr: '',
+        code: 0
+      };
+    },
+    stateStore: { loadRequired: async () => null, save: async () => {} }
+  });
+
+  const end = events.find((event) => event.type === 'codex.invocation.end');
+  assert.equal(end.retried, true);
+});
+
+test('runCodexWorkflow attaches salvaged session metadata before rethrowing', async () => {
+  let caught;
+
+  try {
+    await runCodexWorkflow({
+      mode: 'implement',
+      cwd: '/repo',
+      taskId: 'task-salvaged',
+      schemaPath: '/repo/schemas/implementer-result.schema.json',
+      runtimeDetector: async () => ({
+        installed: true,
+        authenticated: true,
+        authProvider: 'chatgpt',
+        version: 'codex-cli 0.125.0'
+      }),
+      executor: async () => {
+        const error = new Error('timed out');
+        error.code = 'ETIMEDOUT';
+        error.stdout = [
+          '{"type":"thread.started","thread_id":"thread-salvaged"}',
+          '{"type":"turn.started"}'
+        ].join('\n');
+        error.stderr = 'deadline exceeded';
+        throw error;
+      },
+      stateStore: { loadRequired: async () => null, save: async () => {} }
+    });
+  } catch (error) {
+    caught = error;
+  }
+
+  assert.equal(caught.taskId, 'task-salvaged');
+  assert.equal(caught.sessionId, 'thread-salvaged');
+  assert.equal(caught.salvageReason, 'partial-jsonl-thread');
+});
+
+test('runCodexWorkflow emits an error event with salvaged session id on failure', async () => {
+  const events = [];
+
+  await assert.rejects(
+    runCodexWorkflow({
+      mode: 'implement',
+      cwd: '/repo',
+      taskId: 'task-error-event',
+      schemaPath: '/repo/schemas/implementer-result.schema.json',
+      eventEmitter: { emit: async (event) => events.push(event) },
+      runtimeDetector: async () => ({
+        installed: true,
+        authenticated: true,
+        authProvider: 'chatgpt',
+        version: 'codex-cli 0.125.0'
+      }),
+      executor: async () => {
+        const error = new Error('timed out');
+        error.code = 'ETIMEDOUT';
+        error.stdout = '{"type":"thread.started","thread_id":"thread-error-event"}';
+        error.stderr = 'deadline exceeded';
+        throw error;
+      },
+      stateStore: { loadRequired: async () => null, save: async () => {} }
+    }),
+    /timed out/
+  );
+
+  const errorEvent = events.find((event) => event.type === 'codex.invocation.error');
+  assert.equal(errorEvent.mode, 'implement');
+  assert.equal(errorEvent.taskId, 'task-error-event');
+  assert.equal(errorEvent.transient, true);
+  assert.equal(errorEvent.salvagedSessionId, 'thread-error-event');
+});
