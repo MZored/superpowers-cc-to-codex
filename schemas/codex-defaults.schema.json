@@ -1,5 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mzored/superpowers-cc-to-codex/schemas/codex-defaults.schema.json",
+  "version": "1.0.0",
   "title": "Codex Project Defaults",
   "description": "Per-project configuration for Codex model, effort, and service tier defaults. Place at .claude/codex-defaults.json in your workspace root.",
   "type": "object",

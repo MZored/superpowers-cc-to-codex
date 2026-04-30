@@ -1,0 +1,13 @@
+{
+  "schemas": {
+    "brainstorm-research": "1.0.0",
+    "branch-analysis": "1.0.0",
+    "code-review": "1.0.0",
+    "codex-defaults": "1.0.0",
+    "debug-investigation": "1.0.0",
+    "implementer-result": "1.0.0",
+    "plan-draft": "1.0.0",
+    "spec-review": "1.0.0"
+  },
+  "policy": "version follows semver: major bump on required-key change, minor bump on additive optional, patch on description-only"
+}

@@ -34,4 +34,5 @@ test('validation workflow installs dependencies and validates the plugin manifes
   const workflow = await read('.github/workflows/validate.yml');
   assert.match(workflow, /^\s*- run: npm install$/m);
   assert.match(workflow, /^\s*- run: claude plugin validate \.claude-plugin\/plugin\.json$/m);
+  assert.match(workflow, /^\s*- run: npm run validate:schemas$/m);
 });

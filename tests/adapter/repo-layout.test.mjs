@@ -29,6 +29,7 @@ test('package.json wires the maintainer scripts', async () => {
   assert.ok(pkg.scripts.test);
   assert.ok(pkg.scripts['validate:plugin']);
   assert.ok(pkg.scripts.doctor);
+  assert.ok(pkg.scripts['validate:schemas']);
 });
 
 test('package test script includes the mcp-server unit suite', async () => {

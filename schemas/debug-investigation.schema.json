@@ -1,5 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mzored/superpowers-cc-to-codex/schemas/debug-investigation.schema.json",
+  "version": "1.0.0",
   "type": "object",
   "additionalProperties": false,
   "required": ["root_cause", "evidence", "working_examples", "hypothesis", "suggested_fix"],
