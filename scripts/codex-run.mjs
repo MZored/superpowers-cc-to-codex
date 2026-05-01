@@ -332,6 +332,10 @@ export async function runCodexWorkflow({
   onStdoutChunk,
   onStderrChunk,
   dryRun = false,
+  // Pre-resolved runtime detection. Detection performs two extra `codex` spawns
+  // (--version + login status) on every call; long-lived consumers like the
+  // MCP server should detect once at boot and pass it in here.
+  runtime: precomputedRuntime,
   runtimeDetector = detectCodexRuntime,
   executor = runInvocation,
   stateStore = { loadRequired: loadRequiredTaskState, save: saveTaskState },
@@ -343,7 +347,7 @@ export async function runCodexWorkflow({
     assertSafeTaskId(taskId);
   }
 
-  const runtime = await runtimeDetector();
+  const runtime = precomputedRuntime ?? (await runtimeDetector());
 
   const savedState =
     mode === 'resume' && taskId && !sessionId
@@ -394,7 +398,21 @@ export async function runCodexWorkflow({
       },
       attempt: () => executor(invocation, { signal, onSpawn, onStdoutChunk, onStderrChunk })
     });
-  } catch (error) {
+  } catch (rawError) {
+    // Rewrap ENOENT spawn failures with an actionable hint so users without
+    // the codex CLI in PATH see what to fix. Preserve the original error
+    // on `cause` and keep the ENOENT code for callers that branch on it.
+    const error =
+      rawError?.code === 'ENOENT' && /codex/i.test(rawError?.path ?? rawError?.syscall ?? rawError?.message ?? '')
+        ? Object.assign(
+            new Error(
+              "Codex CLI not found in PATH. Install it (e.g. `npm i -g @openai/codex`) " +
+                'and ensure `codex --version` succeeds before retrying.'
+            ),
+            { code: 'ENOENT', cause: rawError, stdout: rawError.stdout ?? '', stderr: rawError.stderr ?? '' }
+          )
+        : rawError;
+
     // Salvage: attempt to extract partial state from error output
     const rawStdout = error.stdout ?? '';
     const parsed = parseCodexJsonl(rawStdout);

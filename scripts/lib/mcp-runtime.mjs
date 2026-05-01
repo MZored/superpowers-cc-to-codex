@@ -28,6 +28,22 @@ export function createRequestRegistry() {
     },
     delete(requestId) {
       map.delete(requestId);
+    },
+    // cancelAll — fan out cancellation to every in-flight request and clear
+    // the map. Used during graceful shutdown so SIGTERM/SIGINT does not
+    // orphan Codex subprocesses. Individual cancel exceptions are swallowed:
+    // a single buggy entry must not stop the rest from being cancelled.
+    cancelAll(reason = 'shutdown') {
+      const entries = Array.from(map.values());
+      map.clear();
+      for (const entry of entries) {
+        if (typeof entry?.cancel !== 'function') continue;
+        try {
+          entry.cancel(reason);
+        } catch {
+          // best-effort — shutdown must continue even if one cancel throws
+        }
+      }
     }
   };
 }

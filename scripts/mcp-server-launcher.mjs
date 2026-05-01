@@ -86,5 +86,9 @@ export async function startMcpServer({
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  await startMcpServer();
+  const server = await startMcpServer();
+  // Lazy-import to keep the launcher's static import surface unchanged for
+  // downstream consumers that monkeypatch loadServerModule in tests.
+  const { installShutdownHandlers } = await loadServerModule(PLUGIN_ROOT);
+  installShutdownHandlers({ server });
 }

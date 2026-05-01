@@ -28,6 +28,7 @@ import {
   RootsListChangedNotificationSchema
 } from '@modelcontextprotocol/sdk/types.js';
 import { runCodexWorkflow } from './codex-run.mjs';
+import { detectCodexRuntime } from './detect-codex.mjs';
 import { createRequestRegistry } from './lib/mcp-runtime.mjs';
 import { TOOL_DEFINITIONS } from './lib/mcp-tool-definitions.mjs';
 import { loadExperimentalFeatures } from './lib/experimental-features.mjs';
@@ -281,7 +282,8 @@ export function createToolCallHandler({
 export async function createMcpServer({
   runWorkflow = runCodexWorkflow,
   featureFlags = loadExperimentalFeatures(process.env),
-  taskRegistry = createTaskRegistry()
+  taskRegistry = createTaskRegistry(),
+  requestRegistry = createRequestRegistry()
 } = {}) {
   // Mutable roots cache — updated when client sends roots/list_changed
   let cachedRoots = [];
@@ -299,8 +301,31 @@ export async function createMcpServer({
     }
   );
 
-  const requestRegistry = createRequestRegistry();
+  // The registry is exposed to callers so the CLI/launcher can fan out
+  // shutdown via cancelAll() — without this, in-flight Codex subprocesses
+  // are orphaned when the parent process sends SIGTERM/SIGINT.
+  server.requestRegistry = requestRegistry;
   const scaffoldedWorkspaces = new Set();
+
+  // Memoize Codex runtime detection across the server's lifetime. Without
+  // this, every workflow tool call re-spawns `codex --version` and
+  // `codex login status`, adding 100–300ms per call. The auth provider is
+  // stable for the process lifetime, so caching a successful detection is
+  // safe; failures are not cached so a transient PATH issue can recover.
+  // We only memoize when the caller did not override `runWorkflow` — test
+  // stubs swap in their own implementation that does not need detection,
+  // and forcing a real `codex` spawn there would slow down the suite and
+  // make tests fail on machines without the CLI.
+  let cachedRuntime = null;
+  const usesDefaultWorkflow = runWorkflow === runCodexWorkflow;
+  const cachedRunWorkflow = usesDefaultWorkflow
+    ? async (workflowRequest) => {
+        if (!cachedRuntime) {
+          cachedRuntime = await detectCodexRuntime();
+        }
+        return runWorkflow({ ...workflowRequest, runtime: cachedRuntime });
+      }
+    : runWorkflow;
 
   // Skip the listRoots round-trip when the client did not advertise the roots
   // capability — many MCP clients connect without one, and a blocking request
@@ -358,7 +383,7 @@ export async function createMcpServer({
   const dispatcher = createDispatcher({
     pluginRoot: PLUGIN_ROOT,
     getRoots: async () => (cachedRoots.length > 0 ? cachedRoots : refreshRoots()),
-    runWorkflow,
+    runWorkflow: cachedRunWorkflow,
     server,
     requestRegistry,
     scaffoldedWorkspaces
@@ -381,7 +406,12 @@ export async function createMcpServer({
     featureFlags,
     taskRegistry,
     server,
-    executeTool: runDispatch
+    executeTool: runDispatch,
+    // Surface fire-and-forget IIFE failures via the MCP logging stream so
+    // operators see why a task got stuck in 'working' or vanished without
+    // a terminal status. Best-effort — sendLoggingMessage failures are
+    // swallowed inside emitWarning.
+    sendLog: (payload) => server.sendLoggingMessage(payload).catch(() => {})
   });
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
@@ -446,11 +476,54 @@ export async function createMcpServer({
 // CLI entry point
 // ---------------------------------------------------------------------------
 
+// installShutdownHandlers — wires SIGTERM/SIGINT to cancelAll + server.close
+// so a parent process killing the MCP server does not orphan Codex children.
+// Exported for tests; idempotent registration via process.once().
+export function installShutdownHandlers({
+  server,
+  signals = ['SIGTERM', 'SIGINT'],
+  proc = process,
+  exit = (code) => proc.exit(code),
+  log = (line) => proc.stderr.write(line)
+} = {}) {
+  let shuttingDown = false;
+
+  const handle = async (signal) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    try {
+      log(`[superpowers-cc-to-codex] received ${signal}, cancelling in-flight requests...\n`);
+    } catch {
+      // even stderr writes can fail (closed fd); shutdown must continue
+    }
+    try {
+      server?.requestRegistry?.cancelAll?.(`shutdown:${signal}`);
+    } catch {
+      // best-effort — never block shutdown on cancellation cleanup
+    }
+    try {
+      await server?.close?.();
+    } catch {
+      // best-effort — transport may already be closed
+    }
+    exit(0);
+  };
+
+  for (const signal of signals) {
+    proc.once(signal, () => {
+      void handle(signal);
+    });
+  }
+
+  return handle;
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   try {
     const server = await createMcpServer();
     const transport = new StdioServerTransport();
     await server.connect(transport);
+    installShutdownHandlers({ server });
   } catch (error) {
     // Bootstrap failures must surface — a silent unhandled rejection here
     // leaves the MCP client waiting on an absent server.

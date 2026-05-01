@@ -28,9 +28,33 @@ export function createTaskModeController({
   featureFlags,
   taskRegistry,
   server,
-  executeTool
+  executeTool,
+  sendLog
 }) {
   const runningTasks = new Map();
+
+  // Operator visibility hook for fire-and-forget IIFE failures. The catch
+  // blocks below MUST swallow exceptions (the IIFE is fire-and-forget — an
+  // unhandled rejection would crash the server in strict mode) but the
+  // operator still needs to learn that something went wrong, especially when
+  // both executeTool and the failure-save throw. Best-effort log emission;
+  // never throw from this helper.
+  async function emitWarning(taskId, error, context) {
+    if (!sendLog) return;
+    try {
+      await sendLog({
+        level: 'warning',
+        logger: 'superpowers.codex.taskMode',
+        data: {
+          taskId,
+          context,
+          message: error instanceof Error ? error.message : String(error)
+        }
+      });
+    } catch {
+      // logging is best-effort
+    }
+  }
 
   async function emitStatus(record) {
     if (!server) return;
@@ -144,6 +168,11 @@ export function createTaskModeController({
           // Best-effort failure reporting. The catch path itself must never
           // leak an unhandled rejection — the IIFE is fire-and-forget, and a
           // throw here would crash the server in --unhandled-rejections=strict.
+          // Always surface the original error via sendLog, even if the
+          // failure-save below throws — operators need this signal to debug
+          // tasks stuck in "working".
+          await emitWarning(taskId, error, 'executeTool threw');
+
           try {
             const latest = await taskRegistry.get(taskId);
             if (!latest || latest.status === 'cancelled' || running.cancelled) {
@@ -159,10 +188,10 @@ export function createTaskModeController({
             };
 
             await persistTerminal(updated);
-          } catch {
-            // swallow — the original `error` is already lost to the controller
-            // surface; a secondary registry failure is logged at the registry
-            // layer and must not propagate out of the fire-and-forget IIFE.
+          } catch (saveError) {
+            // Surface the secondary failure separately so operators see both
+            // the original cause and that the registry save also failed.
+            await emitWarning(taskId, saveError, 'failed to persist failed status');
           }
         } finally {
           runningTasks.delete(taskId);
